@@ -1,0 +1,366 @@
+{
+  "4n": {
+    "description": "Standard 4x4 Non-Slippery",
+    "size": 4,
+    "slippery": false,
+    "map_name": "4x4",
+    "desc": null,
+    "holes": [
+      5,
+      7,
+      11,
+      12
+    ],
+    "goal": 15,
+    "cp_no_slip_proba": 1.0,
+    "max_steps": 100,
+    "cp_nbSteps": 110,
+    "op": [
+      "RRDL",
+      "DNDN",
+      "RRDN",
+      "NRRN"
+    ]
+  },
+  "4s": {
+    "description": "Standard 4x4 Slippery",
+    "size": 4,
+    "slippery": true,
+    "map_name": "4x4",
+    "desc": null,
+    "holes": [
+      5,
+      7,
+      11,
+      12
+    ],
+    "goal": 15,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 100,
+    "cp_nbSteps": 110,
+    "op": [
+      "LULU",
+      "LNRN",
+      "UDLN",
+      "NRDN"
+    ]
+  },
+  "4medium": {
+    "description": "Medium 4x4 Slippery (5 Holes)",
+    "size": 4,
+    "slippery": true,
+    "map_name": "4x4",
+    "desc": [
+      "SHHF",
+      "FFFF",
+      "HFHF",
+      "HFFG"
+    ],
+    "holes": [
+      1,
+      2,
+      8,
+      10,
+      12
+    ],
+    "goal": 15,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 100,
+    "cp_nbSteps": 110,
+    "op": [
+      "LNNR",
+      "UDDR",
+      "NRNR",
+      "NRDN"
+    ]
+  },
+  "4hard": {
+    "description": "Hard 4x4 Slippery (5 Holes)",
+    "size": 4,
+    "slippery": true,
+    "map_name": "4x4",
+    "desc": [
+      "SFFF",
+      "FHFF",
+      "HHFH",
+      "HFFG"
+    ],
+    "holes": [
+      5,
+      8,
+      9,
+      11,
+      12
+    ],
+    "goal": 15,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 100,
+    "cp_nbSteps": 110,
+    "op": [
+      "UURL",
+      "UNRU",
+      "NNRN",
+      "NRRN"
+    ]
+  },
+  "8n": {
+    "description": "Standard 8x8 Non-Slippery",
+    "size": 8,
+    "slippery": false,
+    "map_name": "8x8",
+    "desc": null,
+    "holes": [
+      19,
+      29,
+      35,
+      41,
+      42,
+      46,
+      49,
+      52,
+      54,
+      59
+    ],
+    "goal": 63,
+    "cp_no_slip_proba": 1.0,
+    "max_steps": 200,
+    "cp_nbSteps": 220
+  },
+  "8s": {
+    "description": "Standard 8x8 Slippery",
+    "size": 8,
+    "slippery": true,
+    "map_name": "8x8",
+    "desc": null,
+    "holes": [
+      19,
+      29,
+      35,
+      41,
+      42,
+      46,
+      49,
+      52,
+      54,
+      59
+    ],
+    "goal": 63,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 200,
+    "cp_nbSteps": 220,
+    "op": [
+      "RRRRRRRR",
+      "UUUUUUUR",
+      "NNNNNNNR",
+      "NNNNNNNR",
+      "NNNNNNNR",
+      "NNNNNNNR",
+      "NNNNNNNR",
+      "NNNNNNNN"
+    ]
+  },
+  "8medium": {
+    "description": "Medium 8x8 Slippery (10 Holes, Alt Layout)",
+    "size": 8,
+    "slippery": true,
+    "map_name": "8x8",
+    "desc": [
+      "SFFFFFFF",
+      "FHFFFFFF",
+      "FFFHFFFF",
+      "FFFFFHFF",
+      "FFFFHFFF",
+      "FHHFFFHF",
+      "HFFFFHFF",
+      "FFFHFFFG"
+    ],
+    "holes": [
+      9,
+      19,
+      29,
+      36,
+      41,
+      42,
+      46,
+      48,
+      53,
+      59
+    ],
+    "goal": 63,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 200,
+    "cp_nbSteps": 220
+  },
+  "8hard": {
+    "description": "Hard 8x8 Slippery (10 Holes)",
+    "size": 8,
+    "slippery": true,
+    "map_name": "8x8",
+    "desc": [
+      "SFFFHFFF",
+      "FFFFFFFH",
+      "FHFFHFFF",
+      "FFFFFHFF",
+      "FFFFFHFF",
+      "FHFFFFFF",
+      "FHHFFFFF",
+      "FFHFFHFG"
+    ],
+    "holes": [
+      4,
+      15,
+      17,
+      20,
+      29,
+      37,
+      41,
+      49,
+      50,
+      58,
+      61
+    ],
+    "goal": 63,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 200,
+    "cp_nbSteps": 220
+  },
+  "8extrahard": {
+    "description": "Extra Hard 8x8 Slippery (14 Holes)",
+    "size": 8,
+    "slippery": true,
+    "map_name": "8x8",
+    "desc": [
+      "SFHFHFFF",
+      "FFHFFFFH",
+      "FHFFHFFF",
+      "FFFFFHFF",
+      "FFFFFHFF",
+      "FHFFHFFF",
+      "FHHHFFFF",
+      "FFHFFHFG"
+    ],
+    "holes": [
+      2,
+      4,
+      10,
+      15,
+      17,
+      20,
+      29,
+      37,
+      41,
+      46,
+      49,
+      50,
+      51,
+      58,
+      61
+    ],
+    "goal": 63,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 200,
+    "cp_nbSteps": 220
+  },
+  "5s": {
+    "description": "cool 5x5 Slippery",
+    "size": 5,
+    "slippery": true,
+    "map_name": "5x5",
+    "desc": [
+      "SHFFF",
+      "FFFHF",
+      "HHHFF",
+      "FFFFF",
+      "FFFFG"
+    ],
+    "holes": [
+      1,
+      8,
+      10,
+      11,
+      12
+    ],
+    "goal": 24,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 100,
+    "cp_nbSteps": 110,
+    "op": [
+      "LNUUR",
+      "UUUNR",
+      "NNNNR",
+      "NNNNR",
+      "NNNNR"
+    ]
+  },
+  "5hard": {
+    "description": "hard 5x5 Slippery",
+    "size": 5,
+    "slippery": true,
+    "map_name": "5x5",
+    "desc": [
+      "SHFFF",
+      "FFFHF",
+      "HFFHF",
+      "FHFHF",
+      "FFHFG"
+    ],
+    "holes": [
+      1,
+      8,
+      10,
+      13,
+      16,
+      18,
+      22
+    ],
+    "goal": 24,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 100,
+    "cp_nbSteps": 110,
+    "op": [
+      "LNRUR",
+      "UDLNR",
+      "NRLNR",
+      "NNUNR",
+      "NNNNR"
+    ]
+  },
+  "6dw": {
+    "description": "double-wall 6x6 Slippery",
+    "size": 6,
+    "slippery": true,
+    "map_name": "6x6",
+    "desc": [
+      "SHFFFF",
+      "FHFFHF",
+      "FHFFHF",
+      "FHFFHF",
+      "FHFFHF",
+      "FFFFHG"
+    ],
+    "holes": [
+      1,
+      7,
+      10,
+      13,
+      16,
+      19,
+      22,
+      25,
+      28,
+      34
+    ],
+    "goal": 35,
+    "cp_no_slip_proba": 0.3333333333333333,
+    "max_steps": 200,
+    "cp_nbSteps": 220,
+    "op": [
+      "LNRUUR",
+      "LNRLNR",
+      "LNRLNR",
+      "LNRLNR",
+      "LNRLNR",
+      "DDRLNN"
+    ]
+  }
+}
