@@ -28,7 +28,7 @@ def _get_hyperparameters():
         config.EPSILON_MIN,
     )
 
-
+# En vrai je mettrais ca dans un fichier à part....
 class CPRewardClient:
     """ Client for interacting with the CP shaping service over a socket. """
 
