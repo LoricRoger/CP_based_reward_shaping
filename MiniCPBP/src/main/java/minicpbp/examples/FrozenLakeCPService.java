@@ -6,18 +6,17 @@ import minicpbp.engine.core.Constraint;
 import minicpbp.engine.core.IntVar;
 import minicpbp.engine.core.Solver;
 import minicpbp.util.exception.InconsistencyException;
-import static minicpbp.cp.Factory.*; // Import static factory methods
+import static minicpbp.cp.Factory.*;
 
 // Java IO and Net imports
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
-import java.nio.file.Paths; // Used for reading file by path
+import java.nio.file.Paths;
 
 // Data structures
 import java.util.*;
-import java.util.stream.Collectors;
 
 // JSON Library Import
 import org.json.JSONObject;
@@ -28,20 +27,22 @@ import org.json.JSONException;
 public class FrozenLakeCPService {
 
     private static final int PORT = 12345;
-    // Assume instances.json is in the same directory or accessible from where java is run
     private static final String INSTANCES_JSON_FILE = "instances.json";
 
-    private static int squareSize = 4;
-    private static int nbStates = squareSize * squareSize;
-    private static int nbSteps = 110; // Default CP steps (will be overwritten by JSON)
-    private static double noSlipProba = 0.3333333333333333;
-    private static double sideSlipProba = (1.0 - noSlipProba) / 2.0;
+    private static int squareSize = -1;
+    private static int nbStates = -1;
+    private static int nbSteps = -1;
+    private static double noSlipProba = Double.NaN;
+    private static double sideSlipProba = Double.NaN;
     private static int holeReward = 0;
     private static int goalReward = 1;
-    private static int[] holes = {5, 7, 11, 12}; // Default 4x4 holes
+    private static int[] holes = null;
+    private static int nbActions = -1;
+    private static int noSlipBudget = -1;
 
     private static double[][][] P_matrix;
     private static int[][][] R_matrix;
+    @SuppressWarnings("unused") // TODO: à utiliser pour les contraintes de terminaison
     private static List<Integer> acceptingStates; // States where episode can end (goal + holes)
     private static Set<Integer> holeSet = new HashSet<>();
     private static int goalStateIdx = -1;
@@ -65,7 +66,7 @@ public class FrozenLakeCPService {
             case "MS":
                 currentMode = new ModeMS();
                 break;
-            case "ETR" :
+            case "ETR":
                 currentMode = new ModeETR();
                 break;
             case "BUDGET":
@@ -77,40 +78,41 @@ public class FrozenLakeCPService {
         }
         System.out.println("Serveur FrozenLake démarré en mode : " + modeArg);
 
-        // Load instance configurations once at the start
         if (!loadAllInstancesConfig()) {
             System.err.println("FATAL: Could not load instances configuration from '" + INSTANCES_JSON_FILE + "'. Exiting.");
             System.exit(1);
         }
         System.out.println("Successfully loaded instance configurations from " + INSTANCES_JSON_FILE);
 
+        runServer();
+    }
+
+    static void runServer() {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("FrozenLake CP Server listening on port " + PORT);
 
-            while (true) { // Keep accepting client connections
+            while (true) {
                 try (Socket clientSocket = serverSocket.accept();
                      PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
                      BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
 
                     System.out.println("\nClient connected: " + clientSocket.getInetAddress());
-                    out.println("OK Welcome"); // Send welcome message
+                    out.println("OK Welcome");
 
-                    currentInstanceId = null; // Reset instance for new client
-                    cp = null; // Reset solver for new client
+                    currentInstanceId = null;
+                    cp = null;
 
                     String inputLine;
-                    // Process commands from the client until QUIT or disconnect
                     while ((inputLine = in.readLine()) != null) {
                         String[] tokens = inputLine.trim().split("\\s+");
                         String command = tokens.length > 0 ? tokens[0].toUpperCase() : "";
-                        String response = "ERROR Unknown command '" + command + "'"; // Default error
+                        String response = "ERROR Unknown command '" + command + "'";
 
                         try {
                             switch (command) {
                                 case "INIT":
                                     if (tokens.length == 2) {
                                         String reqId = tokens[1];
-                                        // Attempt to load parameters and build model
                                         if (loadInstanceParameters(reqId) && recalculateMatricesAndModelParams()) {
                                             currentInstanceId = reqId;
                                             response = "OK INIT successful for " + currentInstanceId;
@@ -118,7 +120,7 @@ public class FrozenLakeCPService {
                                         } else {
                                             response = "ERROR Failed loading/recalculating for instance " + reqId;
                                             System.err.println(response);
-                                            currentInstanceId = null; // Ensure reset on failure
+                                            currentInstanceId = null;
                                         }
                                     } else {
                                         response = "ERROR Invalid INIT format. Expected: INIT <instance_id>";
@@ -129,7 +131,7 @@ public class FrozenLakeCPService {
                                     if (currentInstanceId == null) {
                                         response = "ERROR Must INIT first";
                                     } else {
-                                        response = handleReset(); // Rebuilds the CP model
+                                        response = handleReset();
                                     }
                                     break;
 
@@ -137,13 +139,13 @@ public class FrozenLakeCPService {
                                     if (currentInstanceId == null || cp == null) {
                                         response = "ERROR Must INIT and RESET first";
                                     } else if (tokens.length == 4) {
-                                        response = handleStep(tokens[1], tokens[2], tokens[3]); // Process step
+                                        response = handleStep(tokens[1], tokens[2], tokens[3]);
                                     } else {
                                         response = "ERROR Invalid STEP format. Expected: STEP <step_idx> <action_idx> <next_state_idx>";
                                     }
                                     break;
 
-                                case "QUERY": // For cp-ms (action marginals)
+                                case "QUERY":
                                     if (currentInstanceId == null || cp == null) {
                                         response = "ERROR Must INIT and RESET first";
                                     } else if (tokens.length == 3) {
@@ -153,13 +155,13 @@ public class FrozenLakeCPService {
                                     }
                                     break;
 
-                                case "QUERY_ETR": // New command for cp-etr (Expected Total Reward)
+                                case "QUERY_ETR":
                                     if (currentInstanceId == null || cp == null) {
                                         response = "ERROR Must INIT and RESET first";
-                                    } else if (tokens.length == 1) { // No extra args needed
+                                    } else if (tokens.length == 1) {
                                         response = handleQueryETR();
                                     } else {
-                                         response = "ERROR Invalid QUERY_ETR format. Expected: QUERY_ETR";
+                                        response = "ERROR Invalid QUERY_ETR format. Expected: QUERY_ETR";
                                     }
                                     break;
 
@@ -169,49 +171,45 @@ public class FrozenLakeCPService {
                                     break;
 
                                 default:
-                                     System.out.println("Received unknown command: " + inputLine);
-                                     // Keep default error response
-                                     break;
+                                    System.out.println("Received unknown command: " + inputLine);
+                                    break;
                             }
                         } catch (Exception e) {
-                            // Catch unexpected errors during command processing
                             System.err.println("Critical Error processing client command '" + inputLine + "': " + e.getMessage());
                             e.printStackTrace();
                             response = "ERROR Processing failed: " + e.getClass().getSimpleName();
                         }
 
-                        out.println(response); // Send response back to client
+                        out.println(response);
 
-                        if ("QUIT".equalsIgnoreCase(command)) { // Exit loop if QUIT command was received
+                        if ("QUIT".equalsIgnoreCase(command)) {
                             break;
                         }
                     }
                 } catch (IOException e) {
                     System.err.println("WARN: Client connection error: " + e.getMessage());
-                    // Client likely disconnected abruptly
                 } finally {
                     System.out.println("Client disconnected.");
-                    currentInstanceId = null; // Clean up state for next potential client
+                    currentInstanceId = null;
                     cp = null;
                 }
             }
         } catch (IOException e) {
             System.err.println("FATAL: Server socket error on port " + PORT + ": " + e.getMessage());
             e.printStackTrace();
-            System.exit(1); // Exit if server cannot bind to port
+            System.exit(1);
         }
     }
 
-    private static boolean loadAllInstancesConfig() {
+    static boolean loadAllInstancesConfig() {
         try {
-            // Try to read relative to current working directory
             String jsonContent = new String(Files.readAllBytes(Paths.get(INSTANCES_JSON_FILE)));
             allInstancesConfig = new JSONObject(jsonContent);
             return true;
         } catch (IOException e) {
-             System.err.println("ERROR reading instances file '" + INSTANCES_JSON_FILE + "': " + e.getMessage());
-             System.err.println("  Current working directory: " + Paths.get(".").toAbsolutePath().normalize().toString());
-             return false;
+            System.err.println("ERROR reading instances file '" + INSTANCES_JSON_FILE + "': " + e.getMessage());
+            System.err.println("  Current working directory: " + Paths.get(".").toAbsolutePath().normalize().toString());
+            return false;
         } catch (JSONException e) {
             System.err.println("ERROR parsing JSON from '" + INSTANCES_JSON_FILE + "': " + e.getMessage());
             return false;
@@ -222,7 +220,7 @@ public class FrozenLakeCPService {
         }
     }
 
-    private static boolean loadInstanceParameters(String instanceId) {
+    static boolean loadInstanceParameters(String instanceId) {
         if (allInstancesConfig == null) {
             System.err.println("ERROR: Instance configurations JSON not loaded.");
             return false;
@@ -235,20 +233,19 @@ public class FrozenLakeCPService {
             JSONObject d = allInstancesConfig.getJSONObject(instanceId);
             squareSize = d.getInt("size");
             nbStates = squareSize * squareSize;
-            goalStateIdx = d.getInt("goal"); // Assuming goal is always present
+            goalStateIdx = d.getInt("goal");
             noSlipProba = d.getDouble("cp_no_slip_proba");
             sideSlipProba = (1.0 - noSlipProba) / 2.0;
-            holeReward = d.optInt("holeReward", 0); // Use defaults if missing
+            holeReward = d.optInt("holeReward", 0);
             goalReward = d.optInt("goalReward", 1);
-
-            nbSteps = d.getInt("cp_nbSteps"); // Use the CP-specific step count
+            noSlipBudget = d.optInt("budget", 0);
+            nbSteps = d.getInt("cp_nbSteps");
 
             JSONArray hArray = d.getJSONArray("holes");
             List<Integer> vHoles = new ArrayList<>();
             for (int i = 0; i < hArray.length(); i++) {
                 int h = hArray.getInt(i);
-                // Validate hole index
-                if (h >= 0 && h < nbStates && h != 0 && h != goalStateIdx) { // Cannot be start or goal
+                if (h >= 0 && h < nbStates && h != 0 && h != goalStateIdx) {
                     vHoles.add(h);
                 } else {
                     System.err.println("WARN: Instance " + instanceId + " has invalid hole index " + h + ". Ignoring.");
@@ -258,15 +255,16 @@ public class FrozenLakeCPService {
 
             System.out.println("Loaded params for '" + instanceId + "': Size=" + squareSize +
                                ", Goal=" + goalStateIdx + ", NoSlip=" + String.format("%.3f", noSlipProba) +
-                               ", Holes=" + Arrays.toString(holes) + ", CP_Steps=" + nbSteps);
+                               ", Holes=" + Arrays.toString(holes) + ", CP_Steps=" + nbSteps +
+                               ", Budget=" + noSlipBudget);
             return true;
         } catch (JSONException e) {
             System.err.println("ERROR: JSON parse error loading params for '" + instanceId + "': " + e.getMessage());
-             if (e.getMessage() != null && e.getMessage().contains("cp_nbSteps")) {
-                 System.err.println(">>> Ensure 'cp_nbSteps' key exists and is an integer in '" + instanceId + "' config.");
-             }
-             if (e.getMessage() != null && e.getMessage().contains("goal")) {
-                 System.err.println(">>> Ensure 'goal' key exists and is an integer in '" + instanceId + "' config.");
+            if (e.getMessage() != null && e.getMessage().contains("cp_nbSteps")) {
+                System.err.println(">>> Ensure 'cp_nbSteps' key exists and is an integer in '" + instanceId + "' config.");
+            }
+            if (e.getMessage() != null && e.getMessage().contains("goal")) {
+                System.err.println(">>> Ensure 'goal' key exists and is an integer in '" + instanceId + "' config.");
             }
             return false;
         } catch (Exception e) {
@@ -276,15 +274,16 @@ public class FrozenLakeCPService {
         }
     }
 
-    private static boolean recalculateMatricesAndModelParams() {
+    static boolean recalculateMatricesAndModelParams() {
         try {
+            nbActions = currentMode.getNbActions();
             holeSet.clear();
-            for (int h : holes) { // Update holeSet
+            for (int h : holes) {
                 holeSet.add(h);
             }
-            acceptingStates = calculateAcceptingStates(); // Goal + Holes
-            P_matrix = calculatePMatrix(); // Calculate transitions
-            R_matrix = calculateRMatrix(); // Calculate immediate rewards
+            acceptingStates = calculateAcceptingStates();
+            P_matrix = calculatePMatrix();
+            R_matrix = calculateRMatrix();
             System.out.println("Recalculated P/R matrices and model parameters.");
             return true;
         } catch (Exception e) {
@@ -294,28 +293,25 @@ public class FrozenLakeCPService {
         }
     }
 
-    private static String handleReset() {
+    static String handleReset() {
         System.out.println("Handling RESET command...");
         String response;
         try {
-            cp = makeSolver(); // Create a new solver instance
+            cp = makeSolver();
 
-            // Define variables for the entire trajectory
-            action = makeIntVarArray(cp, nbSteps, nbActions); // Actions at each step
-            state = makeIntVarArray(cp, nbSteps, nbStates);   // State *reached* at end of each step
-            int minR = Math.min(0, nbSteps * holeReward); // Min possible total reward
-            int maxR = Math.max(0, nbSteps * goalReward); // Max possible total reward
-            totalReward = makeIntVar(cp, minR, maxR);     // Variable for the sum of rewards
+            action = makeIntVarArray(cp, nbSteps, nbActions);
+            state = makeIntVarArray(cp, nbSteps, nbStates);
+            int minR = Math.min(0, nbSteps * holeReward);
+            int maxR = Math.max(0, nbSteps * goalReward);
+            totalReward = makeIntVar(cp, minR, maxR);
 
-            // Post the core Markov constraint linking actions, states, transitions, and rewards
             Constraint c = markov(action, state, P_matrix, R_matrix, 0, totalReward);
             cp.post(c);
 
-            currentMode.applyConstraints(cp, action, totalReward, goalReward, holeReward, noSplipBudget);
+            currentMode.applyConstraints(cp, action, totalReward, goalReward, holeReward, noSlipBudget);
 
-
-            currentEpisodeStep = 0; // Reset step counter for the CP model horizon
-            cp.fixPoint(); // Initial propagation
+            currentEpisodeStep = 0;
+            cp.fixPoint();
             System.out.println("CP Model Reset successfully.");
             response = "OK RESET successful";
 
@@ -323,306 +319,167 @@ public class FrozenLakeCPService {
             System.err.println("Error during RESET: " + e.getMessage());
             e.printStackTrace();
             response = "ERROR RESET failed: " + e.getMessage();
-            cp = null; // Ensure solver is nullified on failure
+            cp = null;
         }
         return response;
     }
 
-    private static String handleStep(String iStr, String aStr, String sNextStr) {
-        String response;
-        if (cp == null) {
-            return "ERROR Must RESET first";
-        }
+    static String handleStep(String iStr, String aStr, String sNextStr) {
+        if (cp == null) return "ERROR Must RESET first";
         try {
-            int i = Integer.parseInt(iStr);         // Step index
-            int a = Integer.parseInt(aStr);         // Action taken at step i
-            int sN = Integer.parseInt(sNextStr);    // State reached *after* action a at step i
+            int i = Integer.parseInt(iStr);
+            int a = Integer.parseInt(aStr);
+            int sN = Integer.parseInt(sNextStr);
 
-            // Validate indices
             if (i != currentEpisodeStep) {
                 System.err.println("WARN: STEP index mismatch. Expected " + currentEpisodeStep + ", got " + i);
-                // Mismatched step indices can indicate issues; returning error for strict state management.
                 return "ERROR STEP index mismatch. Expected " + currentEpisodeStep;
             }
-            if (i < 0 || i >= nbSteps) {
-                return "ERROR Step index " + i + " out of bounds [0.." + (nbSteps - 1) + "]";
-            }
-            if (a < 0 || a >= nbActions) {
-                return "ERROR Action index " + a + " out of bounds [0.." + (nbActions - 1) + "]";
-            }
-            if (sN < 0 || sN >= nbStates) {
-                return "ERROR Next state index " + sN + " out of bounds [0.." + (nbStates - 1) + "]";
-            }
+            if (i < 0 || i >= nbSteps) return "ERROR Step index " + i + " out of bounds [0.." + (nbSteps - 1) + "]";
+            if (a < 0 || a >= nbActions) return "ERROR Action index " + a + " out of bounds [0.." + (nbActions - 1) + "]";
+            if (sN < 0 || sN >= nbStates) return "ERROR Next state index " + sN + " out of bounds [0.." + (nbStates - 1) + "]";
 
-            try {
-                // Assign the known action and resulting state for step i
-                action[i].assign(a);
-                state[i].assign(sN); // state[i] is the state *at the end* of step i
+            action[i].assign(a);
+            state[i].assign(sN);
+            cp.fixPoint();
+            currentEpisodeStep++;
+            return "OK STEP processed";
 
-                cp.fixPoint(); // Propagate the consequences of this assignment
-
-                currentEpisodeStep++; // Increment the internal step counter
-                response = "OK STEP processed";
-
-            } catch (InconsistencyException e) {
-                System.err.println("ERROR: Inconsistency detected on STEP " + i + " (A=" + a + ", S_next=" + sN + "). " + e.getMessage());
-                // This means the provided step is impossible according to the model's current beliefs.
-                response = "ERROR Inconsistency STEP " + i;
-            }
+        } catch (InconsistencyException e) {
+            System.err.println("ERROR: Inconsistency detected on STEP: " + e.getMessage());
+            return "ERROR Inconsistency STEP " + iStr;
         } catch (NumberFormatException e) {
-            response = "ERROR Invalid number in STEP command: " + e.getMessage();
-            System.err.println(response);
+            System.err.println("ERROR Invalid number in STEP command: " + e.getMessage());
+            return "ERROR Invalid number in STEP command: " + e.getMessage();
         } catch (Exception e) {
-            response = "ERROR Unexpected failure processing STEP: " + e.getMessage();
-            System.err.println(response);
+            System.err.println("ERROR Unexpected failure processing STEP: " + e.getMessage());
             e.printStackTrace();
+            return "ERROR Unexpected failure processing STEP: " + e.getMessage();
         }
-        return response;
     }
 
-    private static String handleQueryActionMarginal(String iStr, String aQueryStr) {
-        String response;
-        if (cp == null) {
-            return "ERROR Must RESET first";
-        }
-        double prob = 0.0; // Default probability on error
+    static String handleQueryActionMarginal(String iStr, String aQueryStr) {
+        if (cp == null) return "ERROR Must RESET first";
         try {
-            int i = Integer.parseInt(iStr);       // Step index to query
-            int aQ = Integer.parseInt(aQueryStr); // Action index to query
+            int i = Integer.parseInt(iStr);
+            int aQ = Integer.parseInt(aQueryStr);
 
-            // Validate indices
-            if (i != currentEpisodeStep) {
-                return "ERROR QUERY index mismatch. Expected " + currentEpisodeStep;
-            }
-            if (i < 0 || i >= nbSteps) {
-                return "ERROR Step index " + i + " out of bounds";
-            }
-            if (aQ < 0 || aQ >= nbActions) {
-                return "ERROR Action index " + aQ + " out of bounds";
-            }
+            if (i != currentEpisodeStep) return "ERROR QUERY index mismatch. Expected " + currentEpisodeStep;
+            if (i < 0 || i >= nbSteps) return "ERROR Step index " + i + " out of bounds";
+            if (aQ < 0 || aQ >= nbActions) return "ERROR Action index " + aQ + " out of bounds";
 
-            try {
-                cp.vanillaBP(BP_ITERATIONS); // Run belief propagation
-                cp.fixPoint();               // Propagate constraints
+            cp.vanillaBP(BP_ITERATIONS);
+            cp.fixPoint();
 
-                prob = action[i].marginal(aQ); // Get marginal probability for the queried action
+            double prob = action[i].marginal(aQ);
 
-                // Validate marginal probability
-                if (Double.isNaN(prob) || prob < -1e-9 || prob > 1.0 + 1e-9) { // Check bounds with tolerance
-                    System.err.println("WARN: Invalid marginal probability " + prob + " for Action " + aQ + " at Step " + i + ". Clamping to 0.");
-                    prob = 0.0;
-                } else {
-                    prob = Math.max(0.0, Math.min(1.0, prob)); // Clamp to [0, 1] robustly
-                }
-                response = "REWARD " + prob; // Return the calculated marginal
-
-            } catch (InconsistencyException e) {
-                System.err.println("WARN: Inconsistency detected during propagation for QUERY Step " + i + ". Returning 0.0.");
+            if (Double.isNaN(prob) || prob < -1e-9 || prob > 1.0 + 1e-9) {
+                System.err.println("WARN: Invalid marginal probability " + prob + " for Action " + aQ + " at Step " + i + ". Clamping to 0.");
                 prob = 0.0;
-                response = "REWARD " + prob;
-            } catch (Exception e) {
-                 System.err.println("ERROR getting marginal for Step " + i + ", Action " + aQ + ": " + e.getMessage());
-                 e.printStackTrace();
-                 prob = 0.0;
-                 response = "REWARD " + prob; // Return 0 on error
+            } else {
+                prob = Math.max(0.0, Math.min(1.0, prob));
             }
+            return "REWARD " + prob;
+
+        } catch (InconsistencyException e) {
+            System.err.println("WARN: Inconsistency detected during propagation for QUERY Step. Returning 0.0.");
+            return "REWARD 0.0";
         } catch (NumberFormatException e) {
-            response = "ERROR Invalid number in QUERY command: " + e.getMessage();
-            System.err.println(response);
-            response = "REWARD 0.0"; // Default on format error
+            System.err.println("ERROR Invalid number in QUERY command: " + e.getMessage());
+            return "REWARD 0.0";
         } catch (Exception e) {
-             response = "ERROR Unexpected failure processing QUERY: " + e.getMessage();
-             System.err.println(response);
-             e.printStackTrace();
-             response = "REWARD 0.0"; // Default on other errors
+            System.err.println("ERROR getting marginal: " + e.getMessage());
+            e.printStackTrace();
+            return "REWARD 0.0";
         }
-        return response;
     }
 
-    private static String handleQueryETR() {
-        String response;
-        if (cp == null) {
-            return "ERROR Must RESET first";
-        }
-        double etrValue = 0.0; // Default ETR (probability of success) on error
+    static String handleQueryETR() {
+        if (cp == null) return "ERROR Must RESET first";
         try {
-            try {
-                cp.vanillaBP(BP_ITERATIONS); // Run belief propagation
-                cp.fixPoint();               // Propagate constraints
+            cp.vanillaBP(BP_ITERATIONS);
+            cp.fixPoint();
 
-                // Get the marginal probability of the total reward being 1 (or >= 1)
-                // Since we constrained totalReward >= 1, totalReward.marginal(1) should give P(success)
-                // If totalReward could be > 1 (e.g. different reward scheme), we might need marginal(v>=1)
-                etrValue = totalReward.marginal(goalReward); // P(totalReward == goalReward)
+            double etrValue = totalReward.marginal(goalReward);
 
-                // Validate the ETR value (should be a probability)
-                if (Double.isNaN(etrValue) || etrValue < -1e-9 || etrValue > 1.0 + 1e-9) {
-                    System.err.println("WARN: Invalid ETR value " + etrValue + " obtained. Clamping to 0.");
-                    etrValue = 0.0;
-                } else {
-                     etrValue = Math.max(0.0, Math.min(1.0, etrValue)); // Clamp to [0, 1]
-                }
-                response = "ETR_VALUE " + etrValue; // Return the calculated ETR value
-
-            } catch (InconsistencyException e) {
-                 System.err.println("WARN: Inconsistency detected during propagation for QUERY_ETR. Returning 0.0.");
-                 etrValue = 0.0;
-                 response = "ETR_VALUE " + etrValue;
-            } catch (Exception e) {
-                 System.err.println("ERROR getting ETR value: " + e.getMessage());
-                 e.printStackTrace();
-                 etrValue = 0.0;
-                 response = "ETR_VALUE " + etrValue; // Return 0 on error
+            if (Double.isNaN(etrValue) || etrValue < -1e-9 || etrValue > 1.0 + 1e-9) {
+                System.err.println("WARN: Invalid ETR value " + etrValue + " obtained. Clamping to 0.");
+                etrValue = 0.0;
+            } else {
+                etrValue = Math.max(0.0, Math.min(1.0, etrValue));
             }
+            System.err.println("ETR calculé : " + etrValue);
+            return "ETR_VALUE " + etrValue;
+
+        } catch (InconsistencyException e) {
+            System.err.println("WARN: Inconsistency detected during propagation for QUERY_ETR. Returning 0.0.");
+            return "ETR_VALUE 0.0";
         } catch (Exception e) {
-             response = "ERROR Unexpected failure processing QUERY_ETR: " + e.getMessage();
-             System.err.println(response);
-             e.printStackTrace();
-             response = "ETR_VALUE 0.0"; // Default on other errors
+            System.err.println("ERROR getting ETR value: " + e.getMessage());
+            e.printStackTrace();
+            return "ETR_VALUE 0.0";
         }
-        System.err.println("ETR calculé : " + etrValue);
-        return response;
     }
 
     private static List<Integer> calculateAcceptingStates() {
-        // Accepting states are where the episode can naturally end: goal or holes
         List<Integer> states = new ArrayList<>();
-        if (goalStateIdx >= 0) {
-            states.add(goalStateIdx);
-        }
+        if (goalStateIdx >= 0) states.add(goalStateIdx);
         holeSet.forEach(h -> states.add(h));
         return states;
     }
 
-    // Calculates transition probability matrix P[state][action][next_state]
     private static double[][][] calculatePMatrix() {
         double[][][] P = new double[nbStates][nbActions][nbStates];
-
-        if (nbActions == 4){
-        for (int i = 0; i < nbStates; i++) { // Current state i
-             // Check if terminal state (goal or hole)
-             if (holeSet.contains(i) || i == goalStateIdx) {
-                 // Terminal state: force self-loop for all actions
-                 for (int j = 0; j < nbActions; j++) {
-                     // P[i][j][k] is already 0.0 by default initialization
-                     P[i][j][i] = 1.0; // Probability 1 of staying in state i
-                 }
-             } else {
-                 // Non-terminal state: calculate transitions based on slip probabilities
-                 for (int j = 0; j < nbActions; j++) { // Action j taken
-                     // Determine intended and perpendicular next states
-                     int s_intended;
-                     int s_perp1;
-                     int s_perp2;
-                     switch (j) {
-                         case 0: s_intended = left(i);  s_perp1 = above(i); s_perp2 = below(i); break; // LEFT
-                         case 1: s_intended = below(i); s_perp1 = left(i);  s_perp2 = right(i); break; // DOWN
-                         case 2: s_intended = right(i); s_perp1 = above(i); s_perp2 = below(i); break; // RIGHT
-                         case 3: s_intended = above(i); s_perp1 = left(i);  s_perp2 = right(i); break; // UP
-                         default: // Should not happen
-                             System.err.println("FATAL: Illegal action " + j + " in PMatrix calculation.");
-                             s_intended = i; s_perp1 = i; s_perp2 = i; // Self-loop on error
-                     }
-
-                     // Assign probabilities (handle case where perpendicular states are the same)
-                     if (s_perp1 == s_perp2) { // e.g., in a corner, moving towards wall
-                          P[i][j][s_intended] += noSlipProba;
-                          P[i][j][s_perp1] += 2 * sideSlipProba; // Both slips lead here
-                     } else {
-                          P[i][j][s_intended] += noSlipProba;
-                          P[i][j][s_perp1] += sideSlipProba;
-                          P[i][j][s_perp2] += sideSlipProba;
-                     }
-
-                     // Normalize probabilities for state i, action j (should sum to 1)
-                     double sum_k = 0;
-                     for (int k = 0; k < nbStates; k++) {
-                         sum_k += P[i][j][k];
-                     }
-                     if (sum_k > 1e-9) { // Avoid division by zero if sum is effectively zero
-                         if (Math.abs(sum_k - 1.0) > 1e-9) { // Check if normalization needed
-                             for (int k = 0; k < nbStates; k++) {
-                                 P[i][j][k] /= sum_k;
-                             }
-                         } // else: sum is already close enough to 1.0
-                     } else {
-                         // This should not happen if actions always lead *somewhere*
-                         System.err.println("WARN: Zero probability sum for P[" + i + "][" + j + "]. Forcing self-loop.");
-                         P[i][j][i] = 1.0;
-                     }
-                 }
-             }
-        }
-    }
-    else if (nbActions == 8) {
-        for (int i = 0; i < nbStates; i++) {
-                if (holeSet.contains(i) || i == goalStateIdx) {
-                    for (int j = 0; j < nbActions; j++) P[i][j][i] = 1.0;
-                } else {
-                    for (int j = 0; j < nbActions; j++) {
-                        int dir = j % 4; // 0,1,2,3 correspond toujours aux directions
-                        boolean isNoSlip = (j >= 4); // Les actions 4,5,6,7 sont magiques
-                        
-                        int s_intended, s_perp1, s_perp2;
-                        switch (dir) {
-                            case 0: s_intended = left(i);  s_perp1 = above(i); s_perp2 = below(i); break;
-                            case 1: s_intended = below(i); s_perp1 = left(i);  s_perp2 = right(i); break;
-                            case 2: s_intended = right(i); s_perp1 = above(i); s_perp2 = below(i); break;
-                            case 3: s_intended = above(i); s_perp1 = left(i);  s_perp2 = right(i); break;
-                            default: s_intended = i; s_perp1 = i; s_perp2 = i;
-                        }
-
-                        if (isNoSlip) {
-                            P[i][j][s_intended] += 1.0; // 100% de réussite
-                        } else {
-                            if (s_perp1 == s_perp2) {
-                                P[i][j][s_intended] += noSlipProba;
-                                P[i][j][s_perp1] += 2 * sideSlipProba;
-                            } else {
-                                P[i][j][s_intended] += noSlipProba;
-                                P[i][j][s_perp1] += sideSlipProba;
-                                P[i][j][s_perp2] += sideSlipProba;
-                            }
-                        }
-                        
-                        double sum_k = 0;
-                        for (int k = 0; k < nbStates; k++) sum_k += P[i][j][k];
-                        if (sum_k > 1e-9 && Math.abs(sum_k - 1.0) > 1e-9) {
-                            for (int k = 0; k < nbStates; k++) P[i][j][k] /= sum_k;
-                        } else if (sum_k <= 1e-9) P[i][j][i] = 1.0;
-                    }
-                }
-            }
-        }
+        currentMode.fillTransitions(P, nbStates, squareSize, holeSet, goalStateIdx, noSlipProba, sideSlipProba);
         return P;
     }
 
-    // Calculates immediate reward matrix R[state][action][next_state]
     private static int[][][] calculateRMatrix() {
-        int[][][] R = new int[nbStates][nbActions][nbStates]; // Initializes to 0
-        for (int i = 0; i < nbStates; i++) { // From state i
-            if (holeSet.contains(i) || i == goalStateIdx) { // No rewards for transitions *from* a terminal state
-                continue;
-            }
-
-            for (int j = 0; j < nbActions; j++) { // Taking action j
-                 // Reward depends only on the destination state k
-                 for (int k = 0; k < nbStates; k++) { // Potential destination state k
-                     if (k == goalStateIdx) {
-                         R[i][j][k] = goalReward; // Reward for landing in goal state k
-                     } else if (holeSet.contains(k)) {
-                         R[i][j][k] = holeReward; // Reward for landing in hole state k
-                     } // Otherwise R[i][j][k] remains 0 (no reward for landing on normal ice)
-                 }
+        int[][][] R = new int[nbStates][nbActions][nbStates];
+        for (int i = 0; i < nbStates; i++) {
+            if (holeSet.contains(i) || i == goalStateIdx) continue;
+            for (int j = 0; j < nbActions; j++) {
+                for (int k = 0; k < nbStates; k++) {
+                    if (k == goalStateIdx) {
+                        R[i][j][k] = goalReward;
+                    } else if (holeSet.contains(k)) {
+                        R[i][j][k] = holeReward;
+                    }
+                }
             }
         }
         return R;
     }
 
-    // Grid navigation helpers (assuming square grid)
-    private static int left(int pos) { return (pos % squareSize > 0 ? pos - 1 : pos); }
-    private static int right(int pos) { return (pos % squareSize < squareSize - 1 ? pos + 1 : pos); }
-    private static int above(int pos) { return (pos >= squareSize ? pos - squareSize : pos); }
-    private static int below(int pos) { return (pos < nbStates - squareSize ? pos + squareSize : pos); }
+    // -------------------------------------------------------------------------
+    // TEST SUPPORT ONLY — ne pas appeler en production.
+    // Remet à zéro tout l'état statique entre deux tests unitaires.
+    // Nécessaire car les champs static fuiteraient d'un test à l'autre.
+    // -------------------------------------------------------------------------
+    static void resetStateForTests(CPMode mode, org.json.JSONObject instancesConfig) {
+        currentMode        = mode;
+        allInstancesConfig = instancesConfig;
+        currentInstanceId = null;
+        squareSize       = -1;
+        nbStates         = -1;
+        nbSteps          = -1;
+        noSlipProba      = Double.NaN;
+        sideSlipProba    = Double.NaN;
+        holeReward       = 0;
+        goalReward       = 1;
+        holes            = null;
+        nbActions        = -1;
+        noSlipBudget     = -1;
+        P_matrix         = null;
+        R_matrix         = null;
+        acceptingStates  = null;
+        holeSet          = new HashSet<>();
+        goalStateIdx     = -1;
+        cp               = null;
+        action           = null;
+        state            = null;
+        totalReward      = null;
+        currentEpisodeStep = 0;
+    }
 
 } // End of class FrozenLakeCPService
