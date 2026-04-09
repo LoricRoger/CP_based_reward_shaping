@@ -18,3 +18,5 @@ Q_INIT_VALUE_CP_ETR = 0.0
 # Evaluation parameters
 EVAL_EPISODES = 100  # Number of episodes *per evaluation run*
 EVAL_FREQUENCY = 10  # Evaluate the agent every X training episodes
+
+BUDGET = 3
