@@ -3,24 +3,25 @@ import argparse
 import datetime
 import json
 import os
+import random
 import subprocess
 import time
-import random
+
 import numpy as np
 
 import config
 import environment
-import utils
-import q_learning_standard
-import q_learning_cp
 import heuristic_agents
+import q_learning_cp
+import q_learning_standard
+import utils
 
 
 def main():
     parser = argparse.ArgumentParser(description="Train/Evaluate FrozenLake agents.")
     parser.add_argument('--instance', type=str, required=True, help="Instance ID from instances.json")
     parser.add_argument('--agent', type=str, choices=['q', 'optimal', 'cp_greedy'], default='q', help="Agent type")
-    parser.add_argument('--shaping', type=str, choices=['none', 'classic', 'cp-ms', 'cp-etr'], default='none',
+    parser.add_argument('--shaping', type=str, choices=['none', 'classic', 'cp-ms', 'cp-etr', 'cp-budget'], default='none',
                         help="Reward shaping for Q-learning")
     parser.add_argument('--episodes', type=int, default=500, help="Training episodes for Q-learning")
     parser.add_argument('--seed', type=int, default=None, help="Random seed to override config.seed_value")
@@ -82,8 +83,9 @@ def main():
     java_stderr_log = os.path.join(results_dir, f"{log_base_name}_java_stderr.log")
 
     print("Creating environment...")
+    active_budget = args.shaping == 'cp-budget'
     env = environment.create_environment(map_name=map_name, is_slippery=slippery, render_mode=None,
-                                         desired_max_steps=max_steps_config, desc=desc)
+                                         desired_max_steps=max_steps_config, desc=desc, budget=config.BUDGET)
     if env is None:
         print("ERROR: Failed to create environment.")
         return
@@ -104,7 +106,7 @@ def main():
         # This format is expected by utils.save_results_log.
         utils.save_results_log({'episode_log': [], 'evaluation_log': final_evaluations}, log_file)
 
-    elif args.agent == 'cp_greedy' or (args.agent == 'q' and args.shaping in ['cp-ms', 'cp-etr']):
+    elif args.agent == 'cp_greedy' or (args.agent == 'q' and args.shaping in ['cp-ms', 'cp-etr', 'cp-budget']):
         project_dir = os.path.dirname(os.path.abspath(__file__))
         cp_dir = os.path.join(project_dir, 'MiniCPBP')
         if not os.path.isdir(cp_dir):
@@ -118,19 +120,27 @@ def main():
             print(f"ERROR: pom.xml not found in {cp_dir}.")
             env.close()
             return
-
+        
         cmd = []  # Initialize cmd list
         mvn_exec = 'mvn.cmd' if os.name == 'nt' else 'mvn'
         base_cmd_args = [mvn_exec, '-f', pom, 'compile', 'exec:java', '-Dexec.cleanupDaemonThreads=false']
 
+        # La classe principale est désormais TOUJOURS la même
+        main_class_arg = '-Dexec.mainClass=minicpbp.examples.FrozenLakeCPService'
+
+        # On choisit juste l'argument à envoyer au 'main' de Java (-Dexec.args=...)
         if args.agent == 'cp_greedy':
-            cmd = base_cmd_args + ['-Dexec.mainClass=minicpbp.examples.FrozenLakeCPService']
-        elif args.shaping == 'cp-ms':  # Implicitly args.agent == 'q' here
-            cmd = base_cmd_args + ['-Dexec.mainClass=minicpbp.examples.FrozenLakeCPServiceMS']
-        elif args.shaping == 'cp-etr':  # Implicitly args.agent == 'q' here
-            cmd = base_cmd_args + ['-Dexec.mainClass=minicpbp.examples.FrozenLakeCPServiceETR']
+            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=MS']
+        elif args.shaping == 'cp-ms':  
+            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=MS']
+        elif args.shaping == 'cp-etr': 
+            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=ETR']
+        elif args.shaping == 'cp-budget':
+            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=BUDGET']
 
         print(f"Starting Java server for CP agent: {' '.join(cmd)}")
+
+
         try:
             with open(java_stdout_log, 'w') as out, open(java_stderr_log, 'w') as err:
                 java_process = subprocess.Popen(cmd, stdout=out, stderr=err, text=True)
