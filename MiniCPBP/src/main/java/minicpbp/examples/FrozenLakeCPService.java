@@ -69,8 +69,8 @@ public class FrozenLakeCPService {
             case "ETR":
                 currentMode = new ModeETR();
                 break;
-            case "BUDGET":
-                currentMode = new ModeBudget();
+            case "ETR-BUDGET":
+                currentMode = new ModeETRBudget();
                 break;
             default:
                 System.err.println("FATAL: Mode inconnu '" + modeArg + "'. Utilisez MS, ETR ou BUDGET.");
@@ -326,10 +326,13 @@ public class FrozenLakeCPService {
 
     static String handleStep(String iStr, String aStr, String sNextStr) {
         if (cp == null) return "ERROR Must RESET first";
+
+        int i = -1, a = -1, sN = -1;
+
         try {
-            int i = Integer.parseInt(iStr);
-            int a = Integer.parseInt(aStr);
-            int sN = Integer.parseInt(sNextStr);
+            i = Integer.parseInt(iStr);
+            a = Integer.parseInt(aStr);
+            sN = Integer.parseInt(sNextStr);
 
             if (i != currentEpisodeStep) {
                 System.err.println("WARN: STEP index mismatch. Expected " + currentEpisodeStep + ", got " + i);
@@ -346,7 +349,7 @@ public class FrozenLakeCPService {
             return "OK STEP processed";
 
         } catch (InconsistencyException e) {
-            System.err.println("ERROR: Inconsistency detected on STEP: " + e.getMessage());
+            System.err.println("ERROR: Inconsistency detected on STEP " + i + " (A=" + a + ", S_next=" + sN + "). " + e.getMessage());
             return "ERROR Inconsistency STEP " + iStr;
         } catch (NumberFormatException e) {
             System.err.println("ERROR Invalid number in STEP command: " + e.getMessage());
@@ -396,11 +399,12 @@ public class FrozenLakeCPService {
 
     static String handleQueryETR() {
         if (cp == null) return "ERROR Must RESET first";
+        double etrValue = 0.0;
         try {
             cp.vanillaBP(BP_ITERATIONS);
             cp.fixPoint();
 
-            double etrValue = totalReward.marginal(goalReward);
+            etrValue = state[nbSteps - 1].marginal(goalStateIdx);;
 
             if (Double.isNaN(etrValue) || etrValue < -1e-9 || etrValue > 1.0 + 1e-9) {
                 System.err.println("WARN: Invalid ETR value " + etrValue + " obtained. Clamping to 0.");
@@ -408,7 +412,7 @@ public class FrozenLakeCPService {
             } else {
                 etrValue = Math.max(0.0, Math.min(1.0, etrValue));
             }
-            System.err.println("ETR calculé : " + etrValue);
+            System.err.println("ETR value pour state : " + currentEpisodeStep +" = " + etrValue);
             return "ETR_VALUE " + etrValue;
 
         } catch (InconsistencyException e) {

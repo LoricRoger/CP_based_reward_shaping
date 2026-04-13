@@ -28,7 +28,6 @@ def _get_hyperparameters():
         config.EPSILON_MIN,
     )
 
-# En vrai je mettrais ca dans un fichier à part....
 class CPRewardClient:
     """ Client for interacting with the CP shaping service over a socket. """
 
@@ -44,7 +43,7 @@ class CPRewardClient:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(CP_TIMEOUT)
             sock.connect((self.host, self.port))
-            time.sleep(0.1)  # Allow time for the server to send a welcome message
+            time.sleep(0.1)
             welcome = sock.recv(CP_BUFFER_SIZE).decode('utf-8').strip()
             if welcome.startswith("OK Welcome"):
                 self.socket = sock
@@ -93,7 +92,7 @@ class CPRewardClient:
         if response.startswith("REWARD "):
             try:
                 value = float(response.split()[1])
-                return max(0.0, min(1.0, value))  # Ensure value is clamped between 0 and 1
+                return max(0.0, min(1.0, value))
             except (ValueError, IndexError):
                 print(f"ERROR: Could not parse float from REWARD response: '{response}'")
                 return None
@@ -138,10 +137,20 @@ class CPRewardClient:
                 self.socket.close()
             except socket.error as e:
                 print(f"WARN: Error closing socket (might be already closed): {e}")
-            except Exception as e:  # Catch any other unexpected errors during close
+            except Exception as e:
                 print(f"WARN: Unexpected error during socket close: {e}")
         self.socket = None
         self.is_connected = False
+
+
+def _get_budget_wrapper(env):
+    """ Remonte la chaîne de wrappers pour trouver FrozenLakeExtendedActions. """
+    wrapper = env
+    while wrapper is not None:
+        if hasattr(wrapper, 'budget'):
+            return wrapper
+        wrapper = getattr(wrapper, 'env', None)
+    return None
 
 
 def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, shaping_type, size, holes, goal,
@@ -155,20 +164,28 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
         q_init_val = config.Q_INIT_VALUE_CP_MS
     elif shaping_type == 'cp-etr':
         q_init_val = config.Q_INIT_VALUE_CP_ETR
-    else:  # This case should ideally not be reached if parameters are validated upstream.
+    elif shaping_type == 'cp-etr-budget':
+        q_init_val = config.Q_INIT_VALUE_CP_ETR_BUDGET
+    else:
         print(f"Warning: Unknown CP shaping type '{shaping_type}' for Q_INIT. Defaulting to 0.05.")
         q_init_val = 0.05
     q_table = np.full((state_size, action_size), q_init_val)
 
-    epsilon, lr, gamma_discount, eps_decay, eps_min = _get_hyperparameters()
+    if shaping_type == 'cp-etr-budget':
+        q_table[:, 4:] = config.Q_INIT_VALUE_CP_ETR_BUDGET
+    epsilon, lr, gamma_discount, _, eps_min = _get_hyperparameters()
+    eps_decay = (eps_min / epsilon) ** (1.0 / total_episodes)
     episode_log, evaluation_log = [], []
 
     if not cp_client or not cp_client.is_connected:
         print("ERROR: CP client not connected. Aborting training.")
         return q_table, episode_log, evaluation_log
 
-    cp_ms_coeff = 0.2  # Coefficient for CP-MS shaping reward component
+    cp_ms_coeff = 0.2
     total_steps_processed = 0
+
+    # Récupère le wrapper budget une fois (si applicable)
+    budget_wrapper = _get_budget_wrapper(env) if shaping_type == 'cp-etr-budget' else None
 
     for episode in range(total_episodes):
         state, info = env.reset()
@@ -178,96 +195,104 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
             break
 
         etr_before = None
-        etr_after = None  # Initialize for clarity within the loop
-        if shaping_type == 'cp-etr':
+        etr_after = None
+        if shaping_type in ['cp-etr', 'cp-etr-budget']:
             etr_before = cp_client.query_etr()
-            if etr_before is None:  # Handle potential failure of initial ETR query
+            if etr_before is None:
                 print(f"WARN: Failed initial ETR query Ep {episode + 1}. Setting to 0.")
                 etr_before = 0.0
 
         episode_steps = 0
         env_reward_sum = 0.0
         shaped_reward_sum = 0.0
-        final_reward = 0.0  # Tracks the environment reward from the terminal step
+        final_reward = 0.0
         done = False
-        terminated = False  # Environment terminated (e.g., reached goal, fell in hole)
-        truncated = False  # Episode ended due to time limit or other truncation
+        terminated = False
+        truncated = False
 
         for step_idx in range(max_steps):
+            noslip_count = 0
             total_steps_processed += 1
             episode_steps += 1
-            current_state_debug = state  # Store state for Q-table update
-            current_step_marginals = {}  # For CP-MS shaping
+            current_state_debug = state
+            current_step_marginals = {}
 
             if shaping_type == 'cp-ms':
-                # Query marginals for all actions from the current state for CP-MS
                 for a_query in range(action_size):
                     marginal = cp_client.query_action_marginal(step_idx, a_query)
                     if marginal is not None:
                         current_step_marginals[a_query] = marginal
                     else:
-                        # If a marginal query fails, use a neutral value (e.g., 0)
                         print(
                             f"WARN: Failed marginal query Ep {episode + 1}/St {step_idx} for S{current_state_debug}, A{a_query}. Using 0.")
                         current_step_marginals[a_query] = 0.0
 
-            # Epsilon-greedy action selection
+            # Récupère le budget courant pour cp-etr-budget
+            current_budget = budget_wrapper.budget if budget_wrapper is not None else None
+
+            # Epsilon-greedy action selection avec masquage si budget épuisé
             if random.random() < epsilon:
-                action = env.action_space.sample()
+                if shaping_type == 'cp-etr-budget' and current_budget <= 0:
+                    action = random.randint(0, 3)  # Seulement actions normales
+                else:
+                    action = env.action_space.sample()
             else:
-                if not (0 <= state < state_size):  # State bounds check
+                if not (0 <= state < state_size):
                     print(f"ERROR: Invalid state {state} Ep {episode + 1}/St {step_idx}. Stopping episode.")
                     break
-                action = int(np.argmax(q_table[state]))
+                if shaping_type == 'cp-etr-budget' and current_budget <= 0:
+                    masked_q = q_table[state].copy()
+                    masked_q[4:] = -np.inf  # Masque actions no-slip
+                    action = int(np.argmax(masked_q))
+                else:
+                    action = int(np.argmax(q_table[state]))
 
+            if action >= 4:
+                noslip_count += 1
             raw_cp_shaping_reward = 0.0
             reward_used_for_update = 0.0
 
             try:
                 next_state, env_reward, terminated, truncated, info = env.step(action)
                 done = terminated or truncated
-            except Exception as err:  # Catch potential errors during environment interaction
+            except Exception as err:
                 print(f"ERROR: env.step exception: {err}. Stopping episode.")
                 break
 
-            # Inform CP server about the taken step, regardless of shaping type
             step_ok = cp_client.send_step(step_idx, action, next_state)
+
             if not step_ok:
                 print(f"WARN: CP Server failed STEP {step_idx} processing. CP state may be inconsistent.")
-                if shaping_type == 'cp-etr':
-                    etr_after = None  # Invalidate ETR if CP step failed
+                break  # Stop propre dans tous les cas
 
-            # Calculate shaping reward based on the method
+            # Calculate shaping reward
             if shaping_type == 'cp-ms':
                 action_marginal = current_step_marginals.get(action, 0.0)
-                raw_cp_shaping_reward = cp_ms_coeff * (action_marginal - 0.25)  # 0.25 is baseline for 4 actions
+                raw_cp_shaping_reward = cp_ms_coeff * (action_marginal - 0.25)
                 reward_used_for_update = env_reward + raw_cp_shaping_reward
-            elif shaping_type == 'cp-etr' and step_ok:  # Only use ETR if CP step was acknowledged
+            elif shaping_type in ['cp-etr', 'cp-etr-budget'] and step_ok:
                 etr_after = cp_client.query_etr()
                 if etr_after is None or etr_before is None:
-                    # If ETR query fails, fall back to environment reward
                     print(f"WARN: Failed ETR query after step {step_idx}. Using env_reward for update.")
                     raw_cp_shaping_reward = 0.0
                     reward_used_for_update = env_reward
                 else:
                     raw_cp_shaping_reward = etr_after - etr_before
                     reward_used_for_update = raw_cp_shaping_reward
-                    # Override for falling into a hole (terminal, env_reward=0, but not goal)
                     if terminated and env_reward == 0.0 and step_idx < max_steps - 1:
                         reward_used_for_update = 0.0 - (etr_before if etr_before is not None else 0.0)
-                    etr_before = etr_after  # Update etr_before for the next step's PBRS calculation
-            else:  # Fallback: No shaping or CP step failed for ETR
+                    etr_before = etr_after
+            else:
                 raw_cp_shaping_reward = 0.0
                 reward_used_for_update = env_reward
 
             shaped_reward_sum += reward_used_for_update
 
             # Q-table update
-            if not (0 <= next_state < state_size):  # Next state bounds check
+            if not (0 <= next_state < state_size):
                 print(f"ERROR: Invalid next_state {next_state} Ep {episode + 1}/St {step_idx}. Stopping episode.")
                 break
             best_next_action_q_value = np.max(q_table[next_state])
-            # If 'done', the future reward is 0 (no further steps)
             td_target = reward_used_for_update + gamma_discount * best_next_action_q_value * (1 - int(done))
             td_error = td_target - q_table[current_state_debug, action]
             q_table[current_state_debug, action] += lr * td_error
@@ -275,18 +300,18 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
             env_reward_sum += env_reward
             state = next_state
             if done:
-                final_reward = env_reward  # Store the last environment reward
-                break  # End of episode
+                final_reward = env_reward
+                break
 
-        success = int(final_reward == 1.0 and terminated)  # Success if goal reached (env_reward=1)
+        success = int(final_reward == 1.0 and terminated)
+        # print(f"Ep {episode+1}: no-slip utilisés = {noslip_count} / {budget_wrapper.initial_budget if budget_wrapper else 'N/A'}")
         episode_log.append({
             'episode': episode + 1, 'steps': episode_steps,
             'env_reward': env_reward_sum, 'shaped_reward': shaped_reward_sum,
             'success': success
         })
-        epsilon = max(epsilon * eps_decay, eps_min)  # Decay epsilon
+        epsilon = max(epsilon * eps_decay, eps_min)
 
-        # Periodic evaluation
         if (episode + 1) % config.EVAL_FREQUENCY == 0 or (episode + 1) == total_episodes:
             sr, ar_undisc, ar_disc, avg_ss, avg_sf = utils.evaluate_agent(env, q_table, max_steps, config.EVAL_EPISODES)
             evaluation_log.append({
@@ -307,9 +332,8 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                     print(f"    {row_str}")
             else:
                 print("    (Could not generate policy grid)")
-            print("-" * (4 + size + 1))  # Dynamic separator based on grid size
+            print("-" * (4 + size + 1))
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            # shaping_method_name already contains shaping_type (e.g. 'cp-ms')
             q_filename = os.path.join("results",
                                       f"q_{shaping_method_name}_{instance_id}_{total_episodes}eps_{episode + 1}eval_{timestamp}.csv")
             utils.save_q_table_csv(q_table, q_filename)

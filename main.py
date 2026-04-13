@@ -3,26 +3,24 @@ import argparse
 import datetime
 import json
 import os
-import random
 import subprocess
 import time
-
+import random
 import numpy as np
 
 import config
 import environment
-import heuristic_agents
-import q_learning_cp
-import q_learning_standard
 import utils
-
+import q_learning_standard
+import q_learning_cp
+import heuristic_agents
 
 def main():
     parser = argparse.ArgumentParser(description="Train/Evaluate FrozenLake agents.")
     parser.add_argument('--instance', type=str, required=True, help="Instance ID from instances.json")
     parser.add_argument('--agent', type=str, choices=['q', 'optimal', 'cp_greedy'], default='q', help="Agent type")
-    parser.add_argument('--shaping', type=str, choices=['none', 'classic', 'cp-ms', 'cp-etr', 'cp-budget'], default='none',
-                        help="Reward shaping for Q-learning")
+    parser.add_argument('--shaping', type=str, choices=['none', 'classic', 'cp-ms', 'cp-etr', 'cp-etr-budget'],
+                        default='none', help="Reward shaping for Q-learning")
     parser.add_argument('--episodes', type=int, default=500, help="Training episodes for Q-learning")
     parser.add_argument('--seed', type=int, default=None, help="Random seed to override config.seed_value")
     args = parser.parse_args()
@@ -59,6 +57,7 @@ def main():
         desc = instance.get('desc', None)
         optimal_policy_data = instance.get('op', None)
         description = instance.get('description', '')
+        budget = instance.get('budget', 0)
         print(f"Instance: '{instance_id}' ({description}), Agent: {args.agent}, Seed: {current_seed}")
         if args.agent == 'q':
             print(f"  Shaping: {args.shaping}, Episodes: {args.episodes}")
@@ -83,9 +82,9 @@ def main():
     java_stderr_log = os.path.join(results_dir, f"{log_base_name}_java_stderr.log")
 
     print("Creating environment...")
-    active_budget = args.shaping == 'cp-budget'
+    active_budget = budget if args.shaping in ['cp-etr-budget'] else 0
     env = environment.create_environment(map_name=map_name, is_slippery=slippery, render_mode=None,
-                                         desired_max_steps=max_steps_config, desc=desc, budget=config.BUDGET)
+                                         desired_max_steps=max_steps_config, desc=desc, budget=active_budget)
     if env is None:
         print("ERROR: Failed to create environment.")
         return
@@ -106,7 +105,7 @@ def main():
         # This format is expected by utils.save_results_log.
         utils.save_results_log({'episode_log': [], 'evaluation_log': final_evaluations}, log_file)
 
-    elif args.agent == 'cp_greedy' or (args.agent == 'q' and args.shaping in ['cp-ms', 'cp-etr', 'cp-budget']):
+    elif args.agent == 'cp_greedy' or (args.agent == 'q' and args.shaping in ['cp-ms', 'cp-etr', 'cp-etr-budget']):
         project_dir = os.path.dirname(os.path.abspath(__file__))
         cp_dir = os.path.join(project_dir, 'MiniCPBP')
         if not os.path.isdir(cp_dir):
@@ -120,7 +119,7 @@ def main():
             print(f"ERROR: pom.xml not found in {cp_dir}.")
             env.close()
             return
-        
+
         cmd = []  # Initialize cmd list
         mvn_exec = 'mvn.cmd' if os.name == 'nt' else 'mvn'
         base_cmd_args = [mvn_exec, '-f', pom, 'compile', 'exec:java', '-Dexec.cleanupDaemonThreads=false']
@@ -135,8 +134,8 @@ def main():
             cmd = base_cmd_args + [main_class_arg, '-Dexec.args=MS']
         elif args.shaping == 'cp-etr': 
             cmd = base_cmd_args + [main_class_arg, '-Dexec.args=ETR']
-        elif args.shaping == 'cp-budget':
-            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=BUDGET']
+        elif args.shaping == 'cp-etr-budget':
+            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=ETR-BUDGET']
 
         print(f"Starting Java server for CP agent: {' '.join(cmd)}")
 
@@ -180,11 +179,12 @@ def main():
             _cleanup_cp(java_process, cp_client)
 
         elif args.agent == 'q':  # CP shaping for Q-learning
-            train_fn = lambda e, ep, ms: q_learning_cp.train_q_learning_with_cp_shaping(e, cp_client, ep, ms,
+            train_fn = lambda env, episode, maxSteps: q_learning_cp.train_q_learning_with_cp_shaping(env, cp_client,
+                                                                                                     episode, maxSteps,
                                                                                         args.shaping, size, holes, goal,
                                                                                         args.shaping, instance_id)
             _run_q_learning_session(env, train_fn, args, max_steps_config, log_file, java_process, cp_client,
-                                    java_stdout_log, java_stderr_log)
+                                    java_stdout_log, java_stderr_log, size=size, holes=holes, goal=goal)
 
     elif args.agent == 'q':  # Standard Q-learning (non-CP)
         train_fn = None
@@ -201,7 +201,7 @@ def main():
             print(f"ERROR: Invalid shaping '{args.shaping}' for non-CP Q-agent.")
             env.close()
             return
-        _run_q_learning_session(env, train_fn, args, max_steps_config, log_file)
+        _run_q_learning_session(env, train_fn, args, max_steps_config, log_file, size=size, holes=holes, goal=goal)
     else:
         print(f"ERROR: Unknown agent type '{args.agent}'")
 
@@ -211,7 +211,7 @@ def main():
 
 
 def _run_q_learning_session(env, train_fn, args, max_steps_config, log_file, java_process=None, cp_client=None,
-                            java_stdout_log=None, java_stderr_log=None):
+                            java_stdout_log=None, java_stderr_log=None, size=None, holes=None, goal=None):
     q_table, episodes, evaluations = None, [], []
     start_time = time.time()
     try:
@@ -238,6 +238,12 @@ def _run_q_learning_session(env, train_fn, args, max_steps_config, log_file, jav
         print("Plotting Q-learning results...")
         try:
             utils.plot_results([log_file], "plots")
+            if q_table is not None:
+                utils.visualize_policy(
+                    q_table, size, holes, goal,
+                    title=f"Politique finale — {args.shaping} ({args.instance})",
+                    save_path=os.path.join("plots", f"policy_{args.shaping}_{args.instance}.png")
+                )
         except Exception as e:
             print(f"Error plotting results: {e}")
     print(f"\nQ-learning run completed. Log: {log_file}")

@@ -9,17 +9,14 @@ import config  # For EVAL_EPISODES and DISCOUNT_FACTOR
 # CPRewardClient is passed externally (e.g., from main.py).
 from q_learning_cp import CPRewardClient
 import time
-
+from tqdm import tqdm
 
 def _state_to_row_col(state, size):
     """Converts a state index to (row, col)."""
-    """Comme on représente flatten les states, en faisant la division euclidienne on obtient les coordonnées dans la grille"""
     return divmod(state, size)
-
 
 def _char_to_action(char):
     """Converts policy character (L, D, R, U) to action index."""
-    """ C'est un dictionnaire des actions (équivalence entre lettre et nombre)"""
     if char == 'L':
         return 0
     if char == 'D':
@@ -30,13 +27,10 @@ def _char_to_action(char):
         return 3
     return 0  # Default for 'N' or unexpected
 
-
 def run_optimal_policy(env, optimal_policy_grid, size, max_steps):
     """Runs the agent using a pre-defined optimal policy grid."""
     print("--- Running Optimal Policy Evaluation ---")
     print(f"Evaluating for {config.EVAL_EPISODES} episodes with max_steps={max_steps}...")
-
-    ## Des vérifications que tout va bien
     if not optimal_policy_grid:
         print("ERROR: Optimal policy grid is missing or empty in instances.json.")
         return [{'training_episode': 0, 'eval_success_rate': 0.0, 'eval_avg_return': 0.0,
@@ -66,14 +60,14 @@ def run_optimal_policy(env, optimal_policy_grid, size, max_steps):
         done = False
         step_count = 0
 
-        while not (done or truncated):
+        while not done:
             if step_count >= max_steps:
-                truncated = True # Ça ne le ferait pas automatiquement par hasard dans l'environnement ?
-                # done = True  # Pas bof c'est pas top ca le sens normalement
+                truncated = True
+                done = True
                 break
 
             row, col = _state_to_row_col(current_env_state, size)
-            if not (0 <= row < size and 0 <= col < size):  # Si je suis dans une fausse position même si je vois pas comment c'est possible
+            if not (0 <= row < size and 0 <= col < size):
                 print(f"ERROR: Optimal agent - Invalid state {current_env_state} encountered. Terminating episode.")
                 terminated = True
                 done = True
@@ -100,7 +94,7 @@ def run_optimal_policy(env, optimal_policy_grid, size, max_steps):
         if terminated and env_reward == 1.0:  # Successful termination at goal
             wins += 1
             success_steps_list.append(step_count)
-            episode_discounted_return = (gamma ** (step_count - 1)) * 1.0  # Goal reward is 1.0 and 0.0 for all other states
+            episode_discounted_return = (gamma ** (step_count - 1)) * 1.0  # Goal reward is 1.0
         else:  # Failure or truncation
             failure_steps_list.append(step_count)
             episode_discounted_return = 0.0  # No discounted reward if goal not reached
@@ -151,9 +145,8 @@ def run_cp_ms_greedy_agent(env, cp_client: CPRewardClient, total_episodes_for_ev
     gamma = config.DISCOUNT_FACTOR
     # No shared_action_cache here, as per non-caching version
 
-    for episode in range(num_episodes):
+    for episode in tqdm(range(num_episodes)):
         current_env_state, info = env.reset()
-
         reset_response = cp_client.send_receive("RESET")  # Reset CP model state for new episode
         if not reset_response.startswith("OK RESET"):
             print(f"  ERROR: CP Server RESET failed: {reset_response}. Aborting episode.")
@@ -195,7 +188,7 @@ def run_cp_ms_greedy_agent(env, cp_client: CPRewardClient, total_episodes_for_ev
                     f"    WARN: All marginal queries failed or no marginals for S{current_env_state}, CPStep{cp_model_step}. Taking random action.")
                 action_to_take = env.action_space.sample()  # Fallback to random action
             else:
-                action_to_take = np.argmax(action_marginals)  # Choose action with highest marginal. On ne pourrait pas tester de prendre selon la loi de proba des marginales ? En mode un softmax puis on tire selon la loi obtenue voir si ca change des choses.
+                action_to_take = np.argmax(action_marginals)  # Choose action with highest marginal
 
             try:
                 next_env_state, env_reward, terminated, truncated, info = env.step(action_to_take)

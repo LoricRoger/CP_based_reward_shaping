@@ -14,9 +14,9 @@ Q_INIT_VALUE_NONE = 0.0
 Q_INIT_VALUE_CLASSIC = 0.0
 Q_INIT_VALUE_CP_MS = 0.0
 Q_INIT_VALUE_CP_ETR = 0.0
+Q_INIT_VALUE_CP_ETR_BUDGET = 0.0
+Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP = 0.5  # à tuner
 
 # Evaluation parameters
 EVAL_EPISODES = 100  # Number of episodes *per evaluation run*
-EVAL_FREQUENCY = 10  # Evaluate the agent every X training episodes
-
-BUDGET = 3
+EVAL_FREQUENCY = 100  # Evaluate the agent every X training episodes

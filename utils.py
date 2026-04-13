@@ -6,6 +6,7 @@ import os
 import json
 import re
 import config
+from tqdm import tqdm
 
 random.seed(config.seed_value)
 np.random.seed(config.seed_value)
@@ -35,7 +36,10 @@ def load_q_table(filename="results/q_table.npy"):
 def save_q_table_csv(q_table, filename="results/q_table.csv"):
     try:
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        header = "Action_0(L),Action_1(D),Action_2(R),Action_3(U)"
+        n_actions = q_table.shape[1]
+        action_names = {0: 'L', 1: 'D', 2: 'R', 3: 'U',
+                        4: 'L_ns', 5: 'D_ns', 6: 'R_ns', 7: 'U_ns'}
+        header = ",".join(f"Action_{i}({action_names.get(i, str(i))})" for i in range(n_actions))
         np.savetxt(filename, q_table, delimiter=",", fmt='%.6f', header=header, comments='')
         print(f"Q-table saved to {filename} (CSV format)")
     except Exception as e:
@@ -93,7 +97,7 @@ def evaluate_agent(env, q_table, max_steps, eval_episodes=config.EVAL_EPISODES):
         print("WARN: eval_episodes is zero or negative.")
         return 0.0, 0.0, 0.0, 0.0, 0.0
 
-    for episode_idx in range(eval_episodes):
+    for episode_idx in tqdm(range(eval_episodes)):
         state, info = env.reset()
         episode_undiscounted_return = 0.0
         episode_discounted_return = 0.0
@@ -174,6 +178,95 @@ def get_policy_grid_from_q_table(q_table, size, holes, goal):
         return []
     return policy_grid_rows
 
+
+def visualize_policy(q_table, size, holes, goal, title="Greedy Policy", save_path=None):
+    """
+    Visualise la politique greedy issue de la Q-table.
+    - Toutes les cases : gris clair
+    - Start            : bleu
+    - Trous            : noir, croix blanche
+    - Goal             : vert, étoile blanche
+    - Flèches normales (actions 0-3) : noires
+    - Flèches no-slip  (actions 4-7) : oranges
+    """
+    action_arrows = {0: '←', 1: '↓', 2: '→', 3: '↑',
+                     4: '←', 5: '↓', 6: '→', 7: '↑'}
+
+    fig, ax = plt.subplots(figsize=(size * 1.5, size * 1.5))
+    hole_set = set(holes)
+
+    for r in range(size):
+        for c in range(size):
+            state = r * size + c
+
+            # Couleur de la case
+            if state in hole_set:
+                case_color = '#2d2d2d'
+            elif state == goal:
+                case_color = '#2ecc71'
+            elif state == 0:
+                case_color = '#3498db'
+            else:
+                case_color = '#ecf0f1'  # Gris clair pour tout le reste
+
+            rect = plt.Rectangle([c, size - r - 1], 1, 1,
+                                 facecolor=case_color, edgecolor='#bdc3c7', linewidth=1.5)
+            ax.add_patch(rect)
+
+            # Texte par dessus
+            if state in hole_set:
+                ax.text(c + 0.5, size - r - 0.5, 'X',
+                        ha='center', va='center', fontsize=20,
+                        color='white', fontweight='bold')
+            elif state == goal:
+                ax.text(c + 0.5, size - r - 0.5, 'G',
+                        ha='center', va='center', fontsize=20,
+                        color='white', fontweight='bold')
+            else:
+                best_action = int(np.argmax(q_table[state]))
+                text = action_arrows.get(best_action, '?')
+                # Couleur de la flèche selon slip ou no-slip
+                if best_action >= 4:
+                    arrow_color = '#e67e22'  # Orange : no-slip
+                elif state == 0:
+                    arrow_color = 'white'  # Blanc sur fond bleu
+                else:
+                    arrow_color = '#2c3e50'  # Noir : slip normal
+
+                ax.text(c + 0.5, size - r - 0.5, text,
+                        ha='center', va='center', fontsize=20,
+                        color=arrow_color, fontweight='bold')
+
+    # Légende
+    import matplotlib.patches as mpatches
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        mpatches.Patch(color='#3498db', label='État initial'),
+        mpatches.Patch(color='#2ecc71', label='Goal'),
+        mpatches.Patch(color='#2d2d2d', label='Trou'),
+        Line2D([0], [0], marker='$←$', color='w', markerfacecolor='#2c3e50',
+               markersize=12, label='Action normale (slip)'),
+        Line2D([0], [0], marker='$←$', color='w', markerfacecolor='#e67e22',
+               markersize=12, label='Action no-slip'),
+    ]
+    ax.legend(handles=legend_elements, loc='upper left',
+              bbox_to_anchor=(1.02, 1), borderaxespad=0, fontsize=9)
+
+    ax.set_xlim(0, size)
+    ax.set_ylim(0, size)
+    ax.set_aspect('equal')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_title(title, fontsize=14, fontweight='bold', pad=10)
+
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Policy visualization saved to {save_path}")
+    else:
+        plt.show()
+    plt.close()
 
 def plot_results(log_filepaths, output_dir="plots", window_size=50):
     if not log_filepaths:

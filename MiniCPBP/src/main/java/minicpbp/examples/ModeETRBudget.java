@@ -5,19 +5,12 @@ import minicpbp.engine.core.IntVar;
 import static minicpbp.cp.Factory.*;
 import java.util.Set;
 
-public class ModeBudget implements CPMode {
+public class ModeETRBudget implements CPMode {
 
     @Override
     public void applyConstraints(Solver cp, IntVar[] action, IntVar totalReward, int goalReward, int holeReward, int budget) {
-        // 1. Contrainte MS classique
-        if (goalReward > 0) {
-            totalReward.removeBelow(goalReward);
-        }
-
-        // 2. Contrainte de budget sur les actions "NoSlip" (valeurs 4, 5, 6, 7)
         int[] noSlipActions = {4, 5, 6, 7};
         cp.post(atmost(action, noSlipActions, budget));
-
         System.out.println("-> Contraintes BUDGET appliquées (Max " + budget + " mouvements sûrs).");
     }
 
