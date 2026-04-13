@@ -52,7 +52,9 @@ def train_q_learning(env, total_episodes, max_steps, size, holes, goal, shaping_
             if random.random() < epsilon:
                 action = env.action_space.sample()
             else:
-                action = int(np.argmax(q_table[state]))
+                max_val = np.max(q_table[state])
+                best_actions = np.where(q_table[state] == max_val)[0]
+                action = int(np.random.choice(best_actions))
 
             try:
                 next_state, reward, terminated, truncated, info = env.step(action)
