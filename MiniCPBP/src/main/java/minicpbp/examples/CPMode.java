@@ -6,7 +6,7 @@ import minicpbp.engine.core.IntVar;
 import java.util.Set;
 
 public interface CPMode {
-    void applyConstraints(Solver cp, IntVar[] action, IntVar totalReward, int goalReward, int holeReward, int budget);
+    void applyConstraints(Solver cp, IntVar[] action, IntVar totalReward, int goalReward, int holeReward);
 
     int getNbActions();
 

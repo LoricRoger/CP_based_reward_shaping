@@ -164,15 +164,14 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
         q_init_val = config.Q_INIT_VALUE_CP_MS
     elif shaping_type == 'cp-etr':
         q_init_val = config.Q_INIT_VALUE_CP_ETR
-    elif shaping_type == 'cp-etr-budget':
-        q_init_val = config.Q_INIT_VALUE_CP_ETR_BUDGET
     else:
-        print(f"Warning: Unknown CP shaping type '{shaping_type}' for Q_INIT. Defaulting to 0.05.")
-        q_init_val = 0.05
+        print(f"Warning: Unknown CP shaping type '{shaping_type}' for Q_INIT. Defaulting to 0.0.")
+        q_init_val = 0.0
     q_table = np.full((state_size, action_size), q_init_val)
 
-    if shaping_type == 'cp-etr-budget':
-        q_table[:, 4:] = config.Q_INIT_VALUE_CP_ETR_BUDGET
+    # Si l'env a 8 actions (budget actif), initialiser les actions no-slip séparément
+    if action_size == 8:
+        q_table[:, 4:] = config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP
     epsilon, lr, gamma_discount, _, eps_min = _get_hyperparameters()
     eps_decay = (eps_min / epsilon) ** (1.0 / total_episodes)
     episode_log, evaluation_log = [], []
@@ -184,8 +183,8 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
     cp_ms_coeff = 0.2
     total_steps_processed = 0
 
-    # Récupère le wrapper budget une fois (si applicable)
-    budget_wrapper = _get_budget_wrapper(env) if shaping_type == 'cp-etr-budget' else None
+    # Récupère le wrapper budget une fois (si env a 8 actions)
+    budget_wrapper = _get_budget_wrapper(env) if action_size == 8 else None
 
     for episode in range(total_episodes):
         state, info = env.reset()
@@ -196,7 +195,7 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
 
         etr_before = None
         etr_after = None
-        if shaping_type in ['cp-etr', 'cp-etr-budget']:
+        if shaping_type == 'cp-etr':
             etr_before = cp_client.query_etr()
             if etr_before is None:
                 print(f"WARN: Failed initial ETR query Ep {episode + 1}. Setting to 0.")
@@ -209,9 +208,9 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
         done = False
         terminated = False
         truncated = False
+        noslip_count = 0
 
         for step_idx in range(max_steps):
-            noslip_count = 0
             total_steps_processed += 1
             episode_steps += 1
             current_state_debug = state
@@ -227,12 +226,12 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                             f"WARN: Failed marginal query Ep {episode + 1}/St {step_idx} for S{current_state_debug}, A{a_query}. Using 0.")
                         current_step_marginals[a_query] = 0.0
 
-            # Récupère le budget courant pour cp-etr-budget
+            # Récupère le budget courant (si applicable)
             current_budget = budget_wrapper.budget if budget_wrapper is not None else None
 
             # Epsilon-greedy action selection avec masquage si budget épuisé
             if random.random() < epsilon:
-                if shaping_type == 'cp-etr-budget' and current_budget <= 0:
+                if current_budget is not None and current_budget <= 0:
                     action = random.randint(0, 3)  # Seulement actions normales
                 else:
                     action = env.action_space.sample()
@@ -240,7 +239,7 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                 if not (0 <= state < state_size):
                     print(f"ERROR: Invalid state {state} Ep {episode + 1}/St {step_idx}. Stopping episode.")
                     break
-                if shaping_type == 'cp-etr-budget' and current_budget <= 0:
+                if current_budget is not None and current_budget <= 0:
                     masked_q = q_table[state].copy()
                     masked_q[4:] = -np.inf  # Masque actions no-slip
                     action = int(np.argmax(masked_q))
@@ -270,7 +269,7 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                 action_marginal = current_step_marginals.get(action, 0.0)
                 raw_cp_shaping_reward = cp_ms_coeff * (action_marginal - 0.25)
                 reward_used_for_update = env_reward + raw_cp_shaping_reward
-            elif shaping_type in ['cp-etr', 'cp-etr-budget'] and step_ok:
+            elif shaping_type == 'cp-etr' and step_ok:
                 etr_after = cp_client.query_etr()
                 if etr_after is None or etr_before is None:
                     print(f"WARN: Failed ETR query after step {step_idx}. Using env_reward for update.")
@@ -304,7 +303,6 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                 break
 
         success = int(final_reward == 1.0 and terminated)
-        # print(f"Ep {episode+1}: no-slip utilisés = {noslip_count} / {budget_wrapper.initial_budget if budget_wrapper else 'N/A'}")
         episode_log.append({
             'episode': episode + 1, 'steps': episode_steps,
             'env_reward': env_reward_sum, 'shaped_reward': shaped_reward_sum,

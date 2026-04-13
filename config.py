@@ -14,9 +14,8 @@ Q_INIT_VALUE_NONE = 0.0
 Q_INIT_VALUE_CLASSIC = 0.0
 Q_INIT_VALUE_CP_MS = 0.0
 Q_INIT_VALUE_CP_ETR = 0.0
-Q_INIT_VALUE_CP_ETR_BUDGET = 0.0
-Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP = 0.5  # à tuner
+Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP = 0.1  # Valeur initiale pour les actions no-slip (actions 4-7) quand budget > 0
 
 # Evaluation parameters
 EVAL_EPISODES = 100  # Number of episodes *per evaluation run*
-EVAL_FREQUENCY = 100  # Evaluate the agent every X training episodes
+EVAL_FREQUENCY = 20  # Evaluate the agent every X training episodes

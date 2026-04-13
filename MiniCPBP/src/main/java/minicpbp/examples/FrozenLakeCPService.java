@@ -38,7 +38,6 @@ public class FrozenLakeCPService {
     private static int goalReward = 1;
     private static int[] holes = null;
     private static int nbActions = -1;
-    private static int noSlipBudget = -1;
 
     private static double[][][] P_matrix;
     private static int[][][] R_matrix;
@@ -61,22 +60,28 @@ public class FrozenLakeCPService {
 
     public static void main(String[] args) {
         String modeArg = (args.length > 0) ? args[0].toUpperCase() : "MS";
+        int budgetArg = 0;
+        if (args.length > 1) {
+            try {
+                budgetArg = Integer.parseInt(args[1]);
+            } catch (NumberFormatException e) {
+                System.err.println("FATAL: Budget invalide '" + args[1] + "'. Doit être un entier.");
+                System.exit(1);
+            }
+        }
 
         switch (modeArg) {
             case "MS":
-                currentMode = new ModeMS();
+                currentMode = new ModeMS(budgetArg);
                 break;
             case "ETR":
-                currentMode = new ModeETR();
-                break;
-            case "ETR-BUDGET":
-                currentMode = new ModeETRBudget();
+                currentMode = new ModeETR(budgetArg);
                 break;
             default:
-                System.err.println("FATAL: Mode inconnu '" + modeArg + "'. Utilisez MS, ETR ou BUDGET.");
+                System.err.println("FATAL: Mode inconnu '" + modeArg + "'. Utilisez MS ou ETR.");
                 System.exit(1);
         }
-        System.out.println("Serveur FrozenLake démarré en mode : " + modeArg);
+        System.out.println("Serveur FrozenLake démarré en mode : " + modeArg + (budgetArg > 0 ? " avec budget=" + budgetArg : ""));
 
         if (!loadAllInstancesConfig()) {
             System.err.println("FATAL: Could not load instances configuration from '" + INSTANCES_JSON_FILE + "'. Exiting.");
@@ -238,7 +243,6 @@ public class FrozenLakeCPService {
             sideSlipProba = (1.0 - noSlipProba) / 2.0;
             holeReward = d.optInt("holeReward", 0);
             goalReward = d.optInt("goalReward", 1);
-            noSlipBudget = d.optInt("budget", 0);
             nbSteps = d.getInt("cp_nbSteps");
 
             JSONArray hArray = d.getJSONArray("holes");
@@ -255,8 +259,7 @@ public class FrozenLakeCPService {
 
             System.out.println("Loaded params for '" + instanceId + "': Size=" + squareSize +
                                ", Goal=" + goalStateIdx + ", NoSlip=" + String.format("%.3f", noSlipProba) +
-                               ", Holes=" + Arrays.toString(holes) + ", CP_Steps=" + nbSteps +
-                               ", Budget=" + noSlipBudget);
+                               ", Holes=" + Arrays.toString(holes) + ", CP_Steps=" + nbSteps);
             return true;
         } catch (JSONException e) {
             System.err.println("ERROR: JSON parse error loading params for '" + instanceId + "': " + e.getMessage());
@@ -308,7 +311,7 @@ public class FrozenLakeCPService {
             Constraint c = markov(action, state, P_matrix, R_matrix, 0, totalReward);
             cp.post(c);
 
-            currentMode.applyConstraints(cp, action, totalReward, goalReward, holeReward, noSlipBudget);
+            currentMode.applyConstraints(cp, action, totalReward, goalReward, holeReward);
 
             currentEpisodeStep = 0;
             cp.fixPoint();
@@ -473,7 +476,6 @@ public class FrozenLakeCPService {
         goalReward       = 1;
         holes            = null;
         nbActions        = -1;
-        noSlipBudget     = -1;
         P_matrix         = null;
         R_matrix         = null;
         acceptingStates  = null;

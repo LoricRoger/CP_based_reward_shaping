@@ -19,8 +19,10 @@ def main():
     parser = argparse.ArgumentParser(description="Train/Evaluate FrozenLake agents.")
     parser.add_argument('--instance', type=str, required=True, help="Instance ID from instances.json")
     parser.add_argument('--agent', type=str, choices=['q', 'optimal', 'cp_greedy'], default='q', help="Agent type")
-    parser.add_argument('--shaping', type=str, choices=['none', 'classic', 'cp-ms', 'cp-etr', 'cp-etr-budget'],
+    parser.add_argument('--shaping', type=str, choices=['none', 'classic', 'cp-ms', 'cp-etr'],
                         default='none', help="Reward shaping for Q-learning")
+    parser.add_argument('--budget', type=int, default=0,
+                        help="Max no-slip actions per episode (0 = no budget constraint)")
     parser.add_argument('--episodes', type=int, default=500, help="Training episodes for Q-learning")
     parser.add_argument('--seed', type=int, default=None, help="Random seed to override config.seed_value")
     args = parser.parse_args()
@@ -57,7 +59,6 @@ def main():
         desc = instance.get('desc', None)
         optimal_policy_data = instance.get('op', None)
         description = instance.get('description', '')
-        budget = instance.get('budget', 0)
         print(f"Instance: '{instance_id}' ({description}), Agent: {args.agent}, Seed: {current_seed}")
         if args.agent == 'q':
             print(f"  Shaping: {args.shaping}, Episodes: {args.episodes}")
@@ -82,9 +83,8 @@ def main():
     java_stderr_log = os.path.join(results_dir, f"{log_base_name}_java_stderr.log")
 
     print("Creating environment...")
-    active_budget = budget if args.shaping in ['cp-etr-budget'] else 0
     env = environment.create_environment(map_name=map_name, is_slippery=slippery, render_mode=None,
-                                         desired_max_steps=max_steps_config, desc=desc, budget=active_budget)
+                                         desired_max_steps=max_steps_config, desc=desc, budget=args.budget)
     if env is None:
         print("ERROR: Failed to create environment.")
         return
@@ -105,7 +105,7 @@ def main():
         # This format is expected by utils.save_results_log.
         utils.save_results_log({'episode_log': [], 'evaluation_log': final_evaluations}, log_file)
 
-    elif args.agent == 'cp_greedy' or (args.agent == 'q' and args.shaping in ['cp-ms', 'cp-etr', 'cp-etr-budget']):
+    elif args.agent == 'cp_greedy' or (args.agent == 'q' and args.shaping in ['cp-ms', 'cp-etr']):
         project_dir = os.path.dirname(os.path.abspath(__file__))
         cp_dir = os.path.join(project_dir, 'MiniCPBP')
         if not os.path.isdir(cp_dir):
@@ -127,15 +127,14 @@ def main():
         # La classe principale est désormais TOUJOURS la même
         main_class_arg = '-Dexec.mainClass=minicpbp.examples.FrozenLakeCPService'
 
-        # On choisit juste l'argument à envoyer au 'main' de Java (-Dexec.args=...)
+        # On choisit le mode Java et on passe le budget en argument optionnel
+        budget_suffix = f" {args.budget}" if args.budget > 0 else ""
         if args.agent == 'cp_greedy':
-            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=MS']
-        elif args.shaping == 'cp-ms':  
-            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=MS']
-        elif args.shaping == 'cp-etr': 
-            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=ETR']
-        elif args.shaping == 'cp-etr-budget':
-            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=ETR-BUDGET']
+            cmd = base_cmd_args + [main_class_arg, f'-Dexec.args=MS{budget_suffix}']
+        elif args.shaping == 'cp-ms':
+            cmd = base_cmd_args + [main_class_arg, f'-Dexec.args=MS{budget_suffix}']
+        elif args.shaping == 'cp-etr':
+            cmd = base_cmd_args + [main_class_arg, f'-Dexec.args=ETR{budget_suffix}']
 
         print(f"Starting Java server for CP agent: {' '.join(cmd)}")
 
@@ -247,7 +246,7 @@ def _run_q_learning_session(env, train_fn, args, max_steps_config, log_file, jav
         except Exception as e:
             print(f"Error plotting results: {e}")
     print(f"\nQ-learning run completed. Log: {log_file}")
-    if args.shaping in ['cp-ms', 'cp-etr'] and java_process:
+    if args.shaping in ['cp-ms', 'cp-etr'] and java_process is not None:
         if java_stdout_log and os.path.exists(java_stdout_log):
             print(f"  Java stdout: {java_stdout_log}")
         if java_stderr_log and os.path.exists(java_stderr_log):
