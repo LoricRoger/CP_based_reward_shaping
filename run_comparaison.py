@@ -1,20 +1,19 @@
 """
-run_comparison.py — Benchmark / regression script for the FrozenLake CP reward-shaping
+run_comparaison.py — Benchmark / regression script for the FrozenLake CP reward-shaping
 project. Verifies that a Java refactoring doesn't change results, and serves as a
 general benchmark tool.
 
 Usage:
-    python run_comparison.py [options]
+    python run_comparaison.py [options]
 
 Options:
     --episodes N        Training episodes per run          (default: 2000)
     --seeds N           Number of seeds, starting at 1    (default: 5)
     --instances ID...   Instance IDs to benchmark         (default: 4s 4medium 4hard 8s 8medium 8hard)
     --methods M...      Methods to benchmark              (default: all five)
-    --results-dir DIR   Where main.py writes JSONs        (default: ./results)
-    --plots-dir DIR     Output directory for plots/table  (default: ./notebook_plots)
-    --force             Re-run even if result JSON exists
-    --plots-only        Skip running, only regenerate plots/table from existing JSONs
+    --output-dir DIR    Directory for all outputs         (default: ./comparison_results)
+    --force             Re-run even if cache entry exists
+    --plots-only        Skip running, only regenerate plots/table from cached data
 
 Methods:
     q-none      Q-learning, no reward shaping
@@ -22,12 +21,17 @@ Methods:
     q-cp-ms     Q-learning, CP-MS shaping  (Java mode: MS)
     q-cp-etr    Q-learning, CP-ETR shaping (Java mode: ETR)
     cp-greedy   CP-MS greedy agent (no Q-learning)
+
+Cache:
+    After each successful run, the script writes a compact JSON to
+    comparison_results/cache/{inst}_{method}_seed{seed}_{episodes}eps.json
+    containing just the eval_log, final_sr and final_dr.
+    The results/ folder written by main.py is never read.
 """
 
 import argparse
 import csv
 import json
-import os
 import re
 import subprocess
 import sys
@@ -50,8 +54,7 @@ DEFAULT_INSTANCES = ["4s", "4medium", "4hard", "8s", "8medium", "8hard"]
 DEFAULT_METHODS = ["q-none", "q-classic", "q-cp-ms", "q-cp-etr", "cp-greedy"]
 DEFAULT_SEEDS = 5
 DEFAULT_EPISODES = 2000
-DEFAULT_RESULTS = ROOT / "results"
-DEFAULT_PLOTS = ROOT / "notebook_plots"
+DEFAULT_OUTPUT = ROOT / "comparison_results"
 
 # Maps our method name -> (--agent, --shaping) arguments for main.py
 METHOD_ARGS: dict[str, tuple[str, str | None]] = {
@@ -59,7 +62,7 @@ METHOD_ARGS: dict[str, tuple[str, str | None]] = {
     "q-classic": ("q", "classic"),
     "q-cp-ms": ("q", "cp-ms"),
     "q-cp-etr": ("q", "cp-etr"),
-    "cp-greedy": ("cp_greedy", None),  # no --shaping argument
+    "cp-greedy": ("cp_greedy", None),
 }
 
 # Methods that include a Q-learning training phase
@@ -85,48 +88,80 @@ METHOD_COLORS = {
 
 
 # ---------------------------------------------------------------------------
-# Helpers — log file discovery
+# Cache helpers  (comparison_results/cache/ only — never touches results/)
 # ---------------------------------------------------------------------------
 
-def _log_file_pattern(method: str, instance: str, episodes: int, seed: int) -> re.Pattern:
-    """
-    Regex that matches the JSON log file produced by main.py for a given run.
+def _cache_path(output_dir: Path, inst: str, meth: str, seed: int, episodes: int) -> Path:
+    return output_dir / "cache" / f"{inst}_{meth}_seed{seed}_{episodes}eps.json"
 
-    Filename format (from main.py):
-        {agent_log_name}_{instance_id}_{episodes}eps_seed{seed}_{timestamp}_log.json
-    where agent_log_name is "q_{shaping}" (for agent==q) or "cp_greedy".
+
+def _load_cache(output_dir: Path, inst: str, meth: str, seed: int,
+                episodes: int) -> dict | None:
+    p = _cache_path(output_dir, inst, meth, seed, episodes)
+    if not p.exists():
+        return None
+    try:
+        with open(p) as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"  [WARN] Corrupt cache entry {p.name}: {e} — will re-run")
+        return None
+
+
+def _save_cache(output_dir: Path, inst: str, meth: str, seed: int,
+                episodes: int, entry: dict) -> None:
+    p = _cache_path(output_dir, inst, meth, seed, episodes)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "w") as f:
+        json.dump(entry, f, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Find the JSON that main.py just wrote to results/
+# (used only to extract data immediately after a run — never for skip logic)
+# ---------------------------------------------------------------------------
+
+def _find_fresh_result(inst: str, meth: str, seed: int, episodes: int) -> Path | None:
     """
-    agent, shaping = METHOD_ARGS[method]
+    Scan results/ for the log JSON that main.py just produced for this run.
+    Returns the most-recently-modified match, or None.
+    """
+    agent, shaping = METHOD_ARGS[meth]
     prefix = f"q_{shaping}" if agent == "q" else agent
-    return re.compile(
-        rf"^{re.escape(prefix)}_{re.escape(instance)}_{episodes}eps"
+    pat = re.compile(
+        rf"^{re.escape(prefix)}_{re.escape(inst)}_{episodes}eps"
         rf"_seed{seed}_\d{{8}}_\d{{6}}_log\.json$"
     )
+    results_dir = ROOT / "results"
+    candidates = [p for p in results_dir.iterdir()
+                  if p.is_file() and pat.match(p.name)]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda p: p.stat().st_mtime)
 
 
-def find_existing_log(method: str, instance: str, episodes: int, seed: int,
-                      results_dir: Path) -> Path | None:
-    """Return path of an existing result JSON for this run, or None."""
-    pat = _log_file_pattern(method, instance, episodes, seed)
-    try:
-        for p in results_dir.iterdir():
-            if p.is_file() and pat.match(p.name):
-                return p
-    except FileNotFoundError:
-        pass
-    return None
+def _extract_entry(log: dict) -> dict | None:
+    """Pull the fields we care about out of a main.py result JSON."""
+    eval_log = log.get("evaluation_log", [])
+    if not eval_log:
+        return None
+    last = eval_log[-1]
+    return {
+        "eval_log": eval_log,
+        "final_sr": last.get("eval_success_rate", float("nan")),
+        "final_dr": last.get("eval_avg_discounted_return", float("nan")),
+    }
 
 
 # ---------------------------------------------------------------------------
-# Helpers — subprocess command builder
+# Subprocess command builder
 # ---------------------------------------------------------------------------
 
-def build_cmd(method: str, instance: str, episodes: int, seed: int) -> list[str]:
-    """Build the command to run main.py for one (method, instance, seed) combination."""
-    agent, shaping = METHOD_ARGS[method]
+def _build_cmd(meth: str, inst: str, episodes: int, seed: int) -> list[str]:
+    agent, shaping = METHOD_ARGS[meth]
     cmd = [
         sys.executable, str(ROOT / "main.py"),
-        "--instance", instance,
+        "--instance", inst,
         "--agent", agent,
         "--seed", str(seed),
         "--episodes", str(episodes),
@@ -137,30 +172,18 @@ def build_cmd(method: str, instance: str, episodes: int, seed: int) -> list[str]
 
 
 # ---------------------------------------------------------------------------
-# Helpers — JSON loading
-# ---------------------------------------------------------------------------
-
-def load_json(path: Path) -> dict | None:
-    try:
-        with open(path) as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"  [WARN] Could not read {path.name}: {e}")
-        return None
-
-
-# ---------------------------------------------------------------------------
 # Run all experiments
 # ---------------------------------------------------------------------------
 
-def run_all(instances, methods, seeds, episodes, results_dir, force) -> dict:
+def run_all(instances, methods, seeds, episodes, output_dir, force) -> dict:
     """
-    Launch main.py for every (instance, method, seed) that doesn't already have
-    a result JSON.  Returns:
-        done_paths[(instance, method, seed)] = Path | None
-    """
-    results_dir.mkdir(parents=True, exist_ok=True)
+    Launch main.py for each (instance, method, seed) not already cached.
+    After each successful run, read the result from results/ and write a
+    compact cache entry to comparison_results/cache/.
 
+    Returns:
+        data[(inst, meth, seed)] = cache entry dict | None
+    """
     runs = [(inst, meth, seed)
             for inst in instances
             for meth in methods
@@ -168,7 +191,7 @@ def run_all(instances, methods, seeds, episodes, results_dir, force) -> dict:
 
     total = len(runs)
     skipped = 0
-    done_paths: dict[tuple, Path | None] = {}
+    data: dict[tuple, dict | None] = {}
 
     print(f"\n{'=' * 60}")
     print(f"  Benchmark  |  {total} runs  |  episodes={episodes}")
@@ -178,15 +201,16 @@ def run_all(instances, methods, seeds, episodes, results_dir, force) -> dict:
         w = len(str(total))
         tag = f"[{idx:{w}}/{total}] {inst:<10} {meth:<12} seed={seed}"
 
-        existing = find_existing_log(meth, inst, episodes, seed, results_dir)
-        if existing and not force:
-            print(f"{tag}  --> SKIP  ({existing.name})")
-            done_paths[(inst, meth, seed)] = existing
+        # Skip if cache entry already exists
+        cached = _load_cache(output_dir, inst, meth, seed, episodes)
+        if cached is not None and not force:
+            print(f"{tag}  --> SKIP  (cached)")
+            data[(inst, meth, seed)] = cached
             skipped += 1
             continue
 
         print(f"{tag}  --> running ...", flush=True)
-        cmd = build_cmd(meth, inst, episodes, seed)
+        cmd = _build_cmd(meth, inst, episodes, seed)
         try:
             result = subprocess.run(
                 cmd,
@@ -199,58 +223,60 @@ def run_all(instances, methods, seeds, episodes, results_dir, force) -> dict:
                 print(f"  [ERROR] exit code {result.returncode}")
                 for line in (result.stdout + result.stderr).strip().splitlines()[-20:]:
                     print(f"    {line}")
-                done_paths[(inst, meth, seed)] = None
-            else:
-                fresh = find_existing_log(meth, inst, episodes, seed, results_dir)
-                if fresh:
-                    print(f"  [OK]    {fresh.name}")
-                else:
-                    print(f"  [WARN]  Run succeeded but no log found in {results_dir}")
-                done_paths[(inst, meth, seed)] = fresh
+                data[(inst, meth, seed)] = None
+                continue
+
+            # Read the result that main.py just wrote to results/
+            fresh_path = _find_fresh_result(inst, meth, seed, episodes)
+            if fresh_path is None:
+                print(f"  [WARN]  Run OK but no result JSON found in results/")
+                data[(inst, meth, seed)] = None
+                continue
+
+            try:
+                with open(fresh_path) as f:
+                    raw = json.load(f)
+            except Exception as e:
+                print(f"  [WARN]  Could not read {fresh_path.name}: {e}")
+                data[(inst, meth, seed)] = None
+                continue
+
+            entry = _extract_entry(raw)
+            if entry is None:
+                print(f"  [WARN]  Result JSON has no evaluation_log: {fresh_path.name}")
+                data[(inst, meth, seed)] = None
+                continue
+
+            _save_cache(output_dir, inst, meth, seed, episodes, entry)
+            print(f"  [OK]    cached from {fresh_path.name}")
+            data[(inst, meth, seed)] = entry
 
         except subprocess.TimeoutExpired:
             print(f"  [ERROR] timeout (>7200 s)")
-            done_paths[(inst, meth, seed)] = None
+            data[(inst, meth, seed)] = None
         except Exception as exc:
             print(f"  [ERROR] {exc}")
             traceback.print_exc()
-            done_paths[(inst, meth, seed)] = None
+            data[(inst, meth, seed)] = None
 
-    succeeded = sum(1 for v in done_paths.values() if v is not None)
+    succeeded = sum(1 for v in data.values() if v is not None)
     failed = total - succeeded - skipped
     print(f"\nDone: {succeeded} succeeded, {skipped} skipped, {failed} failed\n")
-    return done_paths
+    return data
 
 
 # ---------------------------------------------------------------------------
-# Collect results from JSONs
+# Load data from cache only (--plots-only)
 # ---------------------------------------------------------------------------
 
-def collect_results(done_paths: dict, instances, methods, seeds) -> dict:
-    """
-    Parse all result JSONs.  Returns:
-        data[(inst, meth, seed)] = {
-            'eval_log':  list of eval-checkpoint dicts,
-            'final_sr':  float,
-            'final_dr':  float,
-        }
-    """
-    data = {}
-    for (inst, meth, seed), path in done_paths.items():
-        if path is None:
-            continue
-        log = load_json(path)
-        if log is None:
-            continue
-        eval_log = log.get("evaluation_log", [])
-        if not eval_log:
-            continue
-        last = eval_log[-1]
-        data[(inst, meth, seed)] = {
-            "eval_log": eval_log,
-            "final_sr": last.get("eval_success_rate", float("nan")),
-            "final_dr": last.get("eval_avg_discounted_return", float("nan")),
-        }
+def load_from_cache(instances, methods, seeds, episodes, output_dir) -> dict:
+    data: dict[tuple, dict | None] = {}
+    for inst in instances:
+        for meth in methods:
+            for seed in seeds:
+                data[(inst, meth, seed)] = _load_cache(output_dir, inst, meth, seed, episodes)
+    found = sum(1 for v in data.values() if v is not None)
+    print(f"Found {found} cache entries.\n")
     return data
 
 
@@ -259,20 +285,15 @@ def collect_results(done_paths: dict, instances, methods, seeds) -> dict:
 # ---------------------------------------------------------------------------
 
 def make_summary_table(data: dict, instances, methods, seeds, output_dir: Path) -> None:
-    """
-    Print and save a Table-2-style summary:
-    mean ± std of SR and DR over seeds, per (instance × method).
-    """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Aggregate
     summary: dict[tuple, dict | None] = {}
     for inst in instances:
         for meth in methods:
             srs = [data[(inst, meth, s)]["final_sr"]
-                   for s in seeds if (inst, meth, s) in data]
+                   for s in seeds if data.get((inst, meth, s)) is not None]
             drs = [data[(inst, meth, s)]["final_dr"]
-                   for s in seeds if (inst, meth, s) in data]
+                   for s in seeds if data.get((inst, meth, s)) is not None]
             if srs:
                 summary[(inst, meth)] = {
                     "sr_mean": float(np.mean(srs)),
@@ -312,15 +333,13 @@ def make_summary_table(data: dict, instances, methods, seeds, output_dir: Path) 
             writer.writerow(row)
     print(f"Summary CSV saved to {csv_path}")
 
-    # Console table
+    # Console
     col_w = 18
     labels = [METHOD_LABELS[m] for m in methods]
     sep = "-" * (12 + col_w * len(methods) * 2)
 
-    def _cell(v, key_mean, key_std):
-        if v is None:
-            return "–"
-        return f"{v[key_mean]:.3f}±{v[key_std]:.3f}"
+    def _cell(v, mk, sk):
+        return f"{v[mk]:.3f}±{v[sk]:.3f}" if v else "–"
 
     print("\n" + sep)
     print(f"{'Instance':<12}", end="")
@@ -345,11 +364,6 @@ def make_summary_table(data: dict, instances, methods, seeds, output_dir: Path) 
 # ---------------------------------------------------------------------------
 
 def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path) -> None:
-    """
-    For each instance, plot eval success rate vs. training episode.
-    - Q-learning methods: mean ± 1 std dev band over seeds.
-    - cp-greedy: horizontal dashed line at mean final SR (no training curve).
-    """
     output_dir.mkdir(parents=True, exist_ok=True)
     plt.style.use("seaborn-v0_8-darkgrid")
 
@@ -361,10 +375,10 @@ def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path
             color = METHOD_COLORS.get(meth)
             label = METHOD_LABELS[meth]
 
-            # ── CP-greedy: horizontal line only ──────────────────────────────
+            # cp-greedy: horizontal dashed line only
             if meth == "cp-greedy":
                 srs = [data[(inst, meth, s)]["final_sr"]
-                       for s in seeds if (inst, meth, s) in data]
+                       for s in seeds if data.get((inst, meth, s)) is not None]
                 if srs:
                     mean_sr = float(np.mean(srs))
                     ax.axhline(mean_sr, linestyle="--", color=color, linewidth=1.8,
@@ -375,7 +389,7 @@ def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path
             if meth not in Q_METHODS:
                 continue
 
-            # ── Q-learning: mean ± std band ───────────────────────────────────
+            # Q-learning: mean ± std band
             seed_curves: dict[int, tuple] = {}
             for seed in seeds:
                 entry = data.get((inst, meth, seed))
@@ -388,7 +402,6 @@ def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path
             if not seed_curves:
                 continue
 
-            # Align curves on a common episode grid (intersection to avoid NaN gaps)
             all_ep_sets = [set(v[0]) for v in seed_curves.values()]
             common_eps = sorted(set.intersection(*all_ep_sets)) if all_ep_sets else []
             if not common_eps:
@@ -399,7 +412,6 @@ def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path
                 lookup = dict(zip(eps, srs))
                 matrix.append([lookup.get(e, float("nan")) for e in common_eps])
             mat = np.array(matrix, dtype=float)
-
             mean_c = np.nanmean(mat, axis=0)
             std_c = np.nanstd(mat, axis=0)
 
@@ -443,15 +455,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--methods", nargs="+", default=DEFAULT_METHODS,
                         choices=list(METHOD_ARGS.keys()),
                         help="Methods to benchmark")
-    parser.add_argument("--results-dir", type=Path, default=DEFAULT_RESULTS,
-                        help="Directory where main.py writes result JSONs")
-    parser.add_argument("--plots-dir", type=Path, default=DEFAULT_PLOTS,
-                        help="Output directory for plots and summary table")
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT,
+                        help=f"Root output directory (default: {DEFAULT_OUTPUT})")
     parser.add_argument("--force", action="store_true",
-                        help="Re-run even if a result JSON already exists")
+                        help="Re-run even if a cache entry already exists")
     parser.add_argument("--plots-only", action="store_true",
-                        help="Skip running experiments; only regenerate plots/table "
-                             "from existing result JSONs")
+                        help="Skip running; only regenerate plots/table from cache")
     return parser.parse_args()
 
 
@@ -460,35 +469,23 @@ def main() -> None:
     seeds = list(range(1, args.seeds + 1))
 
     if not args.plots_only:
-        done_paths = run_all(
+        data = run_all(
             instances=args.instances,
             methods=args.methods,
             seeds=seeds,
             episodes=args.episodes,
-            results_dir=args.results_dir,
+            output_dir=args.output_dir,
             force=args.force,
         )
     else:
-        print("--plots-only: scanning existing results …")
-        done_paths = {}
-        for inst in args.instances:
-            for meth in args.methods:
-                for seed in seeds:
-                    p = find_existing_log(meth, inst, args.episodes, seed, args.results_dir)
-                    done_paths[(inst, meth, seed)] = p
-        found = sum(1 for v in done_paths.values() if v)
-        print(f"Found {found} existing log files.\n")
+        print("--plots-only: loading from cache …")
+        data = load_from_cache(args.instances, args.methods, seeds,
+                               args.episodes, args.output_dir)
 
-    data = collect_results(done_paths, args.instances, args.methods, seeds)
-
-    make_summary_table(
-        data, args.instances, args.methods, seeds,
-        output_dir=args.plots_dir,
-    )
-    make_learning_curves(
-        data, args.instances, args.methods, seeds,
-        output_dir=args.plots_dir,
-    )
+    make_summary_table(data, args.instances, args.methods, seeds,
+                       output_dir=args.output_dir)
+    make_learning_curves(data, args.instances, args.methods, seeds,
+                         output_dir=args.output_dir)
     print("All done.")
 
 
