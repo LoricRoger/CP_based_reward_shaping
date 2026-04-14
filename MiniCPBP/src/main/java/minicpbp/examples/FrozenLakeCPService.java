@@ -407,7 +407,7 @@ public class FrozenLakeCPService {
             cp.vanillaBP(BP_ITERATIONS);
             cp.fixPoint();
 
-            etrValue = state[nbSteps - 1].marginal(goalStateIdx);;
+            etrValue = state[nbSteps - 1].marginal(goalStateIdx);
 
             if (Double.isNaN(etrValue) || etrValue < -1e-9 || etrValue > 1.0 + 1e-9) {
                 System.err.println("WARN: Invalid ETR value " + etrValue + " obtained. Clamping to 0.");
