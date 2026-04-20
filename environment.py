@@ -90,7 +90,7 @@ class FrozenLakeExtendedActions(gym.Wrapper):
 
     La table de transitions étendue est calculée une seule fois à l'initialisation.
     Le budget représente le nombre d'actions déterministes disponibles par épisode.
-    Si le budget est épuisé, les actions 4-7 se comportent comme 0-3 (glissantes).
+    Si le budget est épuisé, les actions 4-7 terminent l'épisode immédiatement (reward=0).
     """
 
     def __init__(self, env: gym.Env, budget):

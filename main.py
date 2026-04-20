@@ -24,17 +24,12 @@ def main():
     parser.add_argument('--budget', type=int, default=0,
                         help="Max no-slip actions per episode (0 = no budget constraint)")
     parser.add_argument('--noslip-strategy', type=str,
-                        choices=['fail', 'degrade', 'penalize', 'full-budget',
-                                 'inverse-curriculum', 'random-budget'],
+                        choices=['fail', 'full-budget'],
                         default='fail',
                         help=(
                             "No-slip action strategy when budget > 0 (default: fail).\n"
-                            "  fail              : curriculum croissant, terminaison si budget épuisé, Q init -0.1\n"
-                            "  degrade           : budget épuisé → action stochastique silencieuse, pas de curriculum\n"
-                            "  penalize          : curriculum + terminaison + pénalité par action no-slip\n"
-                            "  full-budget       : budget max dès le début, terminaison si dépassé\n"
-                            "  inverse-curriculum: commence à budget max, réduit progressivement\n"
-                            "  random-budget     : budget aléatoire [0, max] par épisode"
+                            "  fail        : curriculum croissant, terminaison si budget épuisé, Q init -0.1\n"
+                            "  full-budget : budget max dès le début, terminaison si dépassé, Q init 0.0"
                         ))
     parser.add_argument('--episodes', type=int, default=500, help="Training episodes for Q-learning")
     parser.add_argument('--seed', type=int, default=None, help="Random seed to override config.seed_value")

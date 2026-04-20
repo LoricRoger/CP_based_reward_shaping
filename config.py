@@ -18,7 +18,6 @@ Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP = -0.1  # Valeur initiale pour les actions no-
 
 # Reward shaping coefficients
 CP_MS_SHAPING_COEFF = 0.2   # Coefficient appliqué à (marginal - 0.25) en mode CP-MS
-NOSLIP_PENALTY_COEFF = 0.05  # Pénalité par action no-slip utilisée (stratégie 'penalize')
 
 # Evaluation parameters
 EVAL_EPISODES = 100  # Number of episodes *per evaluation run*

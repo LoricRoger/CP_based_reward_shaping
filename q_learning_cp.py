@@ -7,22 +7,8 @@ No-slip strategy variants (--noslip-strategy):
   fail             Budget épuisé → terminaison immédiate (reward=0). Curriculum croissant.
                    Pénalité : aucune. Init Q no-slip : -0.1 (pessimiste).
 
-  degrade          Budget épuisé → exécute l'action stochastique équivalente (pas de punition).
-                   Pas de curriculum (budget max dès le début). Init Q no-slip : 0.0.
-
-  penalize         Budget épuisé → terminaison. Chaque action no-slip coûte une pénalité immédiate.
-                   Curriculum croissant. Init Q no-slip : -0.1.
-
   full-budget      Budget max dès le début, terminaison si dépassé. Pas de curriculum.
                    Init Q no-slip : 0.0 (neutre).
-
-  inverse-curriculum  Commence avec budget max, réduit progressivement jusqu'à la valeur cible.
-                      L'agent apprend à utiliser no-slip, puis s'adapte à la rareté.
-                      Init Q no-slip : 0.0.
-
-  random-budget    Budget tiré aléatoirement dans [0, max] à chaque épisode.
-                   L'agent apprend à s'adapter à n'importe quel budget résiduel.
-                   Terminaison si dépassé. Init Q no-slip : 0.0.
 """
 import socket
 import random
@@ -288,84 +274,7 @@ class FailStrategy(NoslipStrategy):
                 f"Q_init_noslip={config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP}")
 
 
-# ---- Stratégie 2 : degrade --------------------------------------------------
-
-class DegradeStrategy(NoslipStrategy):
-    """
-    Budget épuisé → l'action no-slip se dégrade silencieusement en action stochastique.
-    L'agent n'est pas puni : il perd juste le bénéfice déterministe.
-    Pas de curriculum (budget max dès le début). Init Q : 0.0 (neutre).
-
-    Note : cette stratégie nécessite de court-circuiter env.step() pour réaliser
-    la dégradation côté Python, car FrozenLakeExtendedActions terminerait l'épisode.
-    On intercepte l'action avant de l'envoyer à l'env.
-    """
-
-    NAME = "degrade"
-
-    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
-        if random.random() < epsilon:
-            return env.action_space.sample()
-        return int(np.argmax(q_table[state]))
-
-    def effective_action(self, action, budget_exhausted):
-        """
-        Si budget épuisé et action no-slip, retourne l'action stochastique correspondante.
-        Sinon retourne l'action originale.
-        """
-        if budget_exhausted and action >= 4:
-            return action - 4  # dégrade vers l'action stochastique de même direction
-        return action
-
-    def describe(self):
-        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
-                f"no curriculum | budget exhausted → slip fallback | Q_init_noslip=0.0")
-
-
-# ---- Stratégie 3 : penalize -------------------------------------------------
-
-class PenalizeStrategy(NoslipStrategy):
-    """
-    Curriculum croissant (identique à 'fail').
-    Budget épuisé → terminaison immédiate.
-    Chaque usage d'une action no-slip coûte une pénalité immédiate sur le reward.
-    Init Q : pessimiste (-0.1).
-    """
-
-    NAME = "penalize"
-
-    def __init__(self, budget_wrapper, total_episodes):
-        super().__init__(budget_wrapper, total_episodes)
-        self.stage_size = total_episodes // (self.max_budget + 1)
-
-    def init_q_noslip(self, q_table):
-        q_table[:, 4:] = config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP
-
-    def update(self, episode):
-        stage = min(episode // self.stage_size, self.max_budget)
-        self.wrapper.initial_budget = stage
-
-    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
-        if random.random() < epsilon:
-            return random.randint(0, 3) if budget_exhausted else env.action_space.sample()
-        if budget_exhausted:
-            masked = q_table[state].copy()
-            masked[4:] = -np.inf
-            return int(np.argmax(masked))
-        return int(np.argmax(q_table[state]))
-
-    def noslip_step_penalty(self, action):
-        if action >= 4:
-            return -config.NOSLIP_PENALTY_COEFF
-        return 0.0
-
-    def describe(self):
-        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
-                f"curriculum: {self.max_budget + 1} stages × {self.stage_size} eps | "
-                f"penalty={config.NOSLIP_PENALTY_COEFF}/noslip | Q_init_noslip={config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP}")
-
-
-# ---- Stratégie 4 : full-budget ----------------------------------------------
+# ---- Stratégie 2 : full-budget ----------------------------------------------
 
 class FullBudgetStrategy(NoslipStrategy):
     """
@@ -381,91 +290,13 @@ class FullBudgetStrategy(NoslipStrategy):
                 f"no curriculum | budget exhausted → fail | Q_init_noslip=0.0")
 
 
-# ---- Stratégie 5 : inverse-curriculum ---------------------------------------
-
-class InverseCurriculumStrategy(NoslipStrategy):
-    """
-    Curriculum inversé : commence avec budget max, réduit progressivement vers la cible.
-    L'agent apprend d'abord à exploiter les no-slip librement, puis s'adapte à leur rareté.
-    Budget épuisé → terminaison immédiate.
-    Init Q : 0.0.
-    """
-
-    NAME = "inverse-curriculum"
-
-    def __init__(self, budget_wrapper, total_episodes):
-        super().__init__(budget_wrapper, total_episodes)
-        self.stage_size = total_episodes // (self.max_budget + 1)
-
-    def update(self, episode):
-        # Commence à max_budget, diminue progressivement vers 0... puis remonte à max
-        # On fait: max, max-1, ..., 1, 0, 0 (dernier palier = budget final cible)
-        # Note: on veut finir au budget cible (max_budget), donc l'inversé est :
-        # palier 0: budget max, palier 1: max-1, ..., palier max: 0
-        # Mais ça finit à 0 ce qui n'est pas utile. On inverse le curriculum et on
-        # finit à max_budget comme dans 'fail' mais en partant de max.
-        # Stage 0 → budget max_budget, stage max_budget → budget 0
-        stage = min(episode // self.stage_size, self.max_budget)
-        self.wrapper.initial_budget = self.max_budget - stage
-
-    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
-        if random.random() < epsilon:
-            return random.randint(0, 3) if budget_exhausted else env.action_space.sample()
-        if budget_exhausted:
-            masked = q_table[state].copy()
-            masked[4:] = -np.inf
-            return int(np.argmax(masked))
-        return int(np.argmax(q_table[state]))
-
-    def describe(self):
-        stages_desc = [
-            f"ep {i * self.stage_size}-{(i + 1) * self.stage_size}: budget {self.max_budget - i}"
-            for i in range(self.max_budget + 1)
-        ]
-        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
-                f"inverse curriculum: {' | '.join(stages_desc)}")
-
-
-# ---- Stratégie 6 : random-budget --------------------------------------------
-
-class RandomBudgetStrategy(NoslipStrategy):
-    """
-    Budget tiré aléatoirement dans [0, max_budget] à chaque épisode.
-    L'agent apprend à s'adapter à n'importe quelle valeur de budget résiduel.
-    Budget épuisé → terminaison immédiate.
-    Init Q : 0.0.
-    """
-
-    NAME = "random-budget"
-
-    def update(self, episode):
-        self.wrapper.initial_budget = random.randint(0, self.max_budget)
-
-    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
-        if random.random() < epsilon:
-            return random.randint(0, 3) if budget_exhausted else env.action_space.sample()
-        if budget_exhausted:
-            masked = q_table[state].copy()
-            masked[4:] = -np.inf
-            return int(np.argmax(masked))
-        return int(np.argmax(q_table[state]))
-
-    def describe(self):
-        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
-                f"budget ~ Uniform[0, {self.max_budget}] per episode | Q_init_noslip=0.0")
-
-
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
 
 NOSLIP_STRATEGIES = {
-    'fail':               FailStrategy,
-    'degrade':            DegradeStrategy,
-    'penalize':           PenalizeStrategy,
-    'full-budget':        FullBudgetStrategy,
-    'inverse-curriculum': InverseCurriculumStrategy,
-    'random-budget':      RandomBudgetStrategy,
+    'fail':        FailStrategy,
+    'full-budget': FullBudgetStrategy,
 }
 
 
@@ -487,8 +318,7 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
     Trains a Q-learning agent with CP-based reward shaping (ETR or MS).
 
     Args:
-        noslip_strategy_name: one of 'fail', 'degrade', 'penalize',
-                              'full-budget', 'inverse-curriculum', 'random-budget'.
+        noslip_strategy_name: one of 'fail', 'full-budget'.
                               Only used when action_size == 8 (budget mode).
     """
     print(f"Starting CP shaped training ({shaping_type}): {total_episodes} episodes")
@@ -585,12 +415,7 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                 action = (env.action_space.sample() if random.random() < epsilon
                           else int(np.argmax(q_table[state])))
 
-            # For 'degrade' strategy: silently replace no-slip with slip when exhausted
             env_action = action
-            if isinstance(strategy, DegradeStrategy) and budget_exhausted and action >= 4:
-                env_action = strategy.effective_action(action, budget_exhausted)
-                # We keep `action` as the Q-table key (agent intended no-slip)
-                # but execute `env_action` (stochastic version) in the environment.
 
             if action >= 4:
                 noslip_count += 1
