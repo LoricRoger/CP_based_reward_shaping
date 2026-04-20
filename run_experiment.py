@@ -86,6 +86,57 @@ METHOD_COLORS = {
     "cp-greedy": "#f39c12",
 }
 
+# Extra colours for budget variants
+_EXTRA_COLORS = [
+    "#1abc9c", "#d35400", "#8e44ad", "#16a085", "#c0392b",
+    "#2980b9", "#27ae60", "#7f8c8d", "#2c3e50",
+]
+
+VALID_STRATEGIES = {"fail", "full-budget"}
+
+
+def _parse_method(raw: str) -> tuple[str, int, str | None]:
+    """
+    Parse a method string like "q-cp-etr:b3:fail" or plain "q-cp-etr".
+    Returns (base, budget, strategy).
+    Raises ValueError on bad input.
+    """
+    parts = raw.split(":")
+    base = parts[0]
+    if base not in METHOD_ARGS:
+        raise ValueError(
+            f"Unknown base method '{base}'. Valid: {sorted(METHOD_ARGS)}"
+        )
+    if len(parts) == 1:
+        return base, 0, None
+    if len(parts) == 3:
+        b_part, s_part = parts[1], parts[2]
+        if not b_part.startswith("b"):
+            raise ValueError(f"Budget part must start with 'b' (e.g. 'b3'), got '{b_part}'")
+        try:
+            budget = int(b_part[1:])
+        except ValueError:
+            raise ValueError(f"Cannot parse budget from '{b_part}'")
+        if s_part not in VALID_STRATEGIES:
+            raise ValueError(f"Unknown strategy '{s_part}'. Valid: {sorted(VALID_STRATEGIES)}")
+        return base, budget, s_part
+    raise ValueError(f"Method must be 'base' or 'base:bN:strategy', got '{raw}'")
+
+
+def _method_label(raw: str) -> str:
+    base, budget, strategy = _parse_method(raw)
+    lbl = METHOD_LABELS.get(base, base)
+    if budget:
+        lbl += f" b{budget}/{strategy}"
+    return lbl
+
+
+def _method_color(raw: str, extra_iter) -> str:
+    base, budget, _ = _parse_method(raw)
+    if budget == 0 and base in METHOD_COLORS:
+        return METHOD_COLORS[base]
+    return next(extra_iter, "#95a5a6")
+
 
 # ---------------------------------------------------------------------------
 # Cache helpers  (experiment_results/cache/ — never touches results/)
@@ -138,7 +189,8 @@ def _extract_entry(log: dict) -> dict | None:
 # ---------------------------------------------------------------------------
 
 def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str) -> list[str]:
-    agent, shaping = METHOD_ARGS[meth]
+    base, budget, strategy = _parse_method(meth)
+    agent, shaping = METHOD_ARGS[base]
     cmd = [
         sys.executable, str(ROOT / "main.py"),
         "--instance", inst,
@@ -149,6 +201,10 @@ def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str) -> 
     ]
     if shaping is not None:
         cmd += ["--shaping", shaping]
+    if budget:
+        cmd += ["--budget", str(budget)]
+    if strategy:
+        cmd += ["--noslip-strategy", strategy]
     return cmd
 
 
@@ -317,7 +373,7 @@ def make_summary_table(data: dict, instances, methods, seeds, output_dir: Path) 
     print(f"Summary CSV saved to {csv_path}")
 
     col_w = 18
-    labels = [METHOD_LABELS[m] for m in methods]
+    labels = [_method_label(m) for m in methods]
     sep = "-" * (12 + col_w * len(methods) * 2)
 
     def _cell(v, mk, sk):
@@ -353,11 +409,13 @@ def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path
         fig, ax = plt.subplots(figsize=(9, 5))
         has_data = False
 
+        extra_iter = iter(_EXTRA_COLORS)
         for meth in methods:
-            color = METHOD_COLORS.get(meth)
-            label = METHOD_LABELS[meth]
+            color = _method_color(meth, extra_iter)
+            label = _method_label(meth)
+            base, _, _ = _parse_method(meth)
 
-            if meth == "cp-greedy":
+            if base == "cp-greedy":
                 srs = [data[(inst, meth, s)]["final_sr"]
                        for s in seeds if data.get((inst, meth, s)) is not None]
                 if srs:
@@ -367,7 +425,7 @@ def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path
                     has_data = True
                 continue
 
-            if meth not in Q_METHODS:
+            if base not in Q_METHODS:
                 continue
 
             seed_curves: dict[int, tuple] = {}
@@ -431,8 +489,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--instances", nargs="+", default=DEFAULT_INSTANCES,
                         metavar="ID", help="Instance IDs to benchmark")
     parser.add_argument("--methods", nargs="+", default=DEFAULT_METHODS,
-                        choices=list(METHOD_ARGS.keys()),
-                        help="Methods to benchmark")
+                        metavar="METHOD",
+                        help=(
+                            "Methods to benchmark. Base: q-none q-classic q-cp-ms q-cp-etr cp-greedy. "
+                            "With budget: base:bN:strategy  e.g. q-cp-etr:b3:fail"
+                        ))
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT,
                         help=f"Root output directory (default: {DEFAULT_OUTPUT})")
     parser.add_argument("--force", action="store_true",
@@ -445,6 +506,14 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     seeds = list(range(1, args.seeds + 1))
+
+    # Validate method strings early
+    try:
+        for m in args.methods:
+            _parse_method(m)
+    except ValueError as e:
+        print(f"[ERROR] {e}")
+        sys.exit(1)
 
     if not args.plots_only:
         data = run_all(
