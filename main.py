@@ -19,8 +19,23 @@ def main():
     parser = argparse.ArgumentParser(description="Train/Evaluate FrozenLake agents.")
     parser.add_argument('--instance', type=str, required=True, help="Instance ID from instances.json")
     parser.add_argument('--agent', type=str, choices=['q', 'optimal', 'cp_greedy'], default='q', help="Agent type")
-    parser.add_argument('--shaping', type=str, choices=['none', 'classic', 'cp-ms', 'cp-etr', 'cp-etr-budget'],
+    parser.add_argument('--shaping', type=str, choices=['none', 'classic', 'cp-ms', 'cp-etr'],
                         default='none', help="Reward shaping for Q-learning")
+    parser.add_argument('--budget', type=int, default=0,
+                        help="Max no-slip actions per episode (0 = no budget constraint)")
+    parser.add_argument('--noslip-strategy', type=str,
+                        choices=['fail', 'degrade', 'penalize', 'full-budget',
+                                 'inverse-curriculum', 'random-budget'],
+                        default='fail',
+                        help=(
+                            "No-slip action strategy when budget > 0 (default: fail).\n"
+                            "  fail              : curriculum croissant, terminaison si budget épuisé, Q init -0.1\n"
+                            "  degrade           : budget épuisé → action stochastique silencieuse, pas de curriculum\n"
+                            "  penalize          : curriculum + terminaison + pénalité par action no-slip\n"
+                            "  full-budget       : budget max dès le début, terminaison si dépassé\n"
+                            "  inverse-curriculum: commence à budget max, réduit progressivement\n"
+                            "  random-budget     : budget aléatoire [0, max] par épisode"
+                        ))
     parser.add_argument('--episodes', type=int, default=500, help="Training episodes for Q-learning")
     parser.add_argument('--seed', type=int, default=None, help="Random seed to override config.seed_value")
     args = parser.parse_args()
@@ -57,7 +72,6 @@ def main():
         desc = instance.get('desc', None)
         optimal_policy_data = instance.get('op', None)
         description = instance.get('description', '')
-        budget = instance.get('budget', 0)
         print(f"Instance: '{instance_id}' ({description}), Agent: {args.agent}, Seed: {current_seed}")
         if args.agent == 'q':
             print(f"  Shaping: {args.shaping}, Episodes: {args.episodes}")
@@ -76,15 +90,16 @@ def main():
     agent_log_name = args.agent
     if args.agent == 'q':
         agent_log_name = f"q_{args.shaping}"
+        if args.budget > 0:
+            agent_log_name += f"_b{args.budget}_{args.noslip_strategy}"
     log_base_name = f"{agent_log_name}_{instance_id}_{args.episodes if args.agent == 'q' else config.EVAL_EPISODES}eps_seed{current_seed}_{timestamp}"
     log_file = os.path.join(results_dir, f"{log_base_name}_log.json")
     java_stdout_log = os.path.join(results_dir, f"{log_base_name}_java_stdout.log")
     java_stderr_log = os.path.join(results_dir, f"{log_base_name}_java_stderr.log")
 
     print("Creating environment...")
-    active_budget = budget if args.shaping in ['cp-etr-budget'] else 0
     env = environment.create_environment(map_name=map_name, is_slippery=slippery, render_mode=None,
-                                         desired_max_steps=max_steps_config, desc=desc, budget=active_budget)
+                                         desired_max_steps=max_steps_config, desc=desc, budget=args.budget)
     if env is None:
         print("ERROR: Failed to create environment.")
         return
@@ -105,7 +120,7 @@ def main():
         # This format is expected by utils.save_results_log.
         utils.save_results_log({'episode_log': [], 'evaluation_log': final_evaluations}, log_file)
 
-    elif args.agent == 'cp_greedy' or (args.agent == 'q' and args.shaping in ['cp-ms', 'cp-etr', 'cp-etr-budget']):
+    elif args.agent == 'cp_greedy' or (args.agent == 'q' and args.shaping in ['cp-ms', 'cp-etr']):
         project_dir = os.path.dirname(os.path.abspath(__file__))
         cp_dir = os.path.join(project_dir, 'MiniCPBP')
         if not os.path.isdir(cp_dir):
@@ -120,22 +135,23 @@ def main():
             env.close()
             return
 
-        cmd = []  # Initialize cmd list
         mvn_exec = 'mvn.cmd' if os.name == 'nt' else 'mvn'
         base_cmd_args = [mvn_exec, '-f', pom, 'compile', 'exec:java', '-Dexec.cleanupDaemonThreads=false']
 
         # La classe principale est désormais TOUJOURS la même
         main_class_arg = '-Dexec.mainClass=minicpbp.examples.FrozenLakeCPService'
 
-        # On choisit juste l'argument à envoyer au 'main' de Java (-Dexec.args=...)
-        if args.agent == 'cp_greedy':
-            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=MS']
-        elif args.shaping == 'cp-ms':  
-            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=MS']
-        elif args.shaping == 'cp-etr': 
-            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=ETR']
-        elif args.shaping == 'cp-etr-budget':
-            cmd = base_cmd_args + [main_class_arg, '-Dexec.args=ETR-BUDGET']
+        # Choose Java mode and pass optional budget argument
+        budget_suffix = f" {args.budget}" if args.budget > 0 else ""
+        if args.agent == 'cp_greedy' or args.shaping == 'cp-ms':
+            java_mode = f"MS{budget_suffix}"
+        elif args.shaping == 'cp-etr':
+            java_mode = f"ETR{budget_suffix}"
+        else:
+            print(f"ERROR: Cannot determine Java mode for agent='{args.agent}', shaping='{args.shaping}'.")
+            env.close()
+            return
+        cmd = base_cmd_args + [main_class_arg, f'-Dexec.args={java_mode}']
 
         print(f"Starting Java server for CP agent: {' '.join(cmd)}")
 
@@ -179,10 +195,10 @@ def main():
             _cleanup_cp(java_process, cp_client)
 
         elif args.agent == 'q':  # CP shaping for Q-learning
-            train_fn = lambda env, episode, maxSteps: q_learning_cp.train_q_learning_with_cp_shaping(env, cp_client,
-                                                                                                     episode, maxSteps,
-                                                                                        args.shaping, size, holes, goal,
-                                                                                        args.shaping, instance_id)
+            noslip_strat = args.noslip_strategy
+            train_fn = lambda env, episode, maxSteps: q_learning_cp.train_q_learning_with_cp_shaping(
+                env, cp_client, episode, maxSteps, args.shaping, size, holes, goal, instance_id,
+                noslip_strategy_name=noslip_strat)
             _run_q_learning_session(env, train_fn, args, max_steps_config, log_file, java_process, cp_client,
                                     java_stdout_log, java_stderr_log, size=size, holes=holes, goal=goal)
 
@@ -239,15 +255,21 @@ def _run_q_learning_session(env, train_fn, args, max_steps_config, log_file, jav
         try:
             utils.plot_results([log_file], "plots")
             if q_table is not None:
+                policy_label = args.shaping
+                if args.budget > 0:
+                    policy_label += f"_b{args.budget}_{args.noslip_strategy}"
+                # Derive a unique stem from the log filename (already contains timestamp)
+                log_stem = os.path.splitext(os.path.basename(log_file))[0]
+                log_stem = log_stem[:-4] if log_stem.endswith("_log") else log_stem
                 utils.visualize_policy(
                     q_table, size, holes, goal,
-                    title=f"Politique finale — {args.shaping} ({args.instance})",
-                    save_path=os.path.join("plots", f"policy_{args.shaping}_{args.instance}.png")
+                    title=f"Politique finale — {policy_label} ({args.instance})",
+                    save_path=os.path.join("plots", f"policy__{log_stem}.png")
                 )
         except Exception as e:
             print(f"Error plotting results: {e}")
     print(f"\nQ-learning run completed. Log: {log_file}")
-    if args.shaping in ['cp-ms', 'cp-etr'] and java_process:
+    if args.shaping in ['cp-ms', 'cp-etr'] and java_process is not None:
         if java_stdout_log and os.path.exists(java_stdout_log):
             print(f"  Java stdout: {java_stdout_log}")
         if java_stderr_log and os.path.exists(java_stderr_log):
@@ -270,16 +292,6 @@ def _print_logs(stderr_path: str, stdout_path: str) -> None:
     if not log_printed:
         print("No Java server log files found or they were empty.")
     print("--- End of Java Server Logs ---\n")
-
-
-def _read_file(path: str) -> str:
-    if not path:
-        return ''
-    try:
-        with open(path, 'r') as f:
-            return f.read()
-    except Exception:
-        return ''
 
 
 def _cleanup_cp(java_proc, client) -> None:

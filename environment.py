@@ -99,23 +99,30 @@ class FrozenLakeExtendedActions(gym.Wrapper):
         self.initial_budget = budget
         self.budget = budget
         self._modify_transition_matrix()
+        self._current_state = 0
 
     def reset(self, **kwargs):
         self.budget = self.initial_budget
-        return self.env.reset(**kwargs)
+        obs, info = self.env.reset(**kwargs)
+        self._current_state = obs
+        return obs, info
 
     def step(self, action: int):
         if action < 4:
-            return self.env.step(action)
-
+            obs, reward, terminated, truncated, info = self.env.step(action)
+            self._current_state = obs
+            return obs, reward, terminated, truncated, info
         direction = action - 4
         if self.budget > 0:
             self.budget -= 1
             lake_env = self._get_lake_env()
             lake_env.lastaction = direction
-            return self.env.step(action)
+            obs, reward, terminated, truncated, info = self.env.step(action)
+            self._current_state = obs
+            return obs, reward, terminated, truncated, info
         else:
-            return self.env.step(direction)
+            # Budget épuisé : action no-slip interdite → terminaison immédiate, reward = 0
+            return self._current_state, 0.0, True, False, {}
 
     def _modify_transition_matrix(self):
         """

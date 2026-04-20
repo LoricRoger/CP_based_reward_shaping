@@ -8,8 +8,8 @@ import re
 import config
 from tqdm import tqdm
 
-random.seed(config.seed_value)
-np.random.seed(config.seed_value)
+# Seeds are set once in main.py after parsing --seed. Do not re-seed here
+# (module-level seeding would override the CLI seed).
 
 
 def save_q_table(q_table, filename="results/q_table.npy"):
@@ -153,7 +153,8 @@ def get_policy_grid_from_q_table(q_table, size, holes, goal):
     policy_grid_rows = []
     try:
         terminals = set(holes) | {goal}
-        action_chars = {0: 'L', 1: 'D', 2: 'R', 3: 'U'}
+        action_chars = {0: 'L', 1: 'D', 2: 'R', 3: 'U',
+                        4: 'L*', 5: 'D*', 6: 'R*', 7: 'U*'}  # * = no-slip
         num_states = q_table.shape[0]
         if num_states != size * size:
             print(f"ERROR: Q-table size {num_states} doesn't match grid {size}x{size}.")
@@ -268,11 +269,26 @@ def visualize_policy(q_table, size, holes, goal, title="Greedy Policy", save_pat
         plt.show()
     plt.close()
 
-def plot_results(log_filepaths, output_dir="plots", window_size=50):
+def plot_results(log_filepaths, output_dir="plots", window_size=50, run_tag=None):
+    """
+    Args:
+        run_tag: string prefixed to every output filename to avoid overwrites.
+                 If None, derived from the first log filepath's basename (timestamp included).
+    """
     if not log_filepaths:
         print("No log files provided for plotting.")
         return
     os.makedirs(output_dir, exist_ok=True)
+
+    if run_tag is None:
+        # Use the stem of the first log file (already contains timestamp) as tag
+        first_stem = os.path.splitext(os.path.basename(log_filepaths[0]))[0]
+        # Strip trailing _log suffix if present
+        run_tag = first_stem[:-4] if first_stem.endswith("_log") else first_stem
+
+    def plot_path(name):
+        return os.path.join(output_dir, f"{run_tag}__{name}.png")
+
     plt.style.use('seaborn-v0_8-darkgrid')
     all_data = []
     labels = []
@@ -318,8 +334,8 @@ def plot_results(log_filepaths, output_dir="plots", window_size=50):
     plt.ylabel('Success Rate (MA)')
     plt.ylim(-0.05, 1.05)
     plt.legend()
-    plt.savefig(os.path.join(output_dir, "comparison_train_success_rate_ma.png"))
-    print(f"Plot saved to {os.path.join(output_dir, 'comparison_train_success_rate_ma.png')}")
+    plt.savefig(plot_path("train_success_rate_ma"))
+    print(f"Plot saved to {plot_path('train_success_rate_ma')}")
     plt.close()
 
     # Plot 2: Training Environment Return (Moving Average)
@@ -339,8 +355,8 @@ def plot_results(log_filepaths, output_dir="plots", window_size=50):
     plt.xlabel('Episode')
     plt.ylabel('Environment Return (MA)')
     plt.legend()
-    plt.savefig(os.path.join(output_dir, "comparison_train_env_return_ma.png"))
-    print(f"Plot saved to {os.path.join(output_dir, 'comparison_train_env_return_ma.png')}")
+    plt.savefig(plot_path("train_env_return_ma"))
+    print(f"Plot saved to {plot_path('train_env_return_ma')}")
     plt.close()
 
     # Plot 3: Evaluation Success Rate
@@ -356,8 +372,8 @@ def plot_results(log_filepaths, output_dir="plots", window_size=50):
     plt.ylabel('Evaluation Success Rate')
     plt.ylim(-0.05, 1.05)
     plt.legend()
-    plt.savefig(os.path.join(output_dir, "comparison_eval_success_rate.png"))
-    print(f"Plot saved to {os.path.join(output_dir, 'comparison_eval_success_rate.png')}")
+    plt.savefig(plot_path("eval_success_rate"))
+    print(f"Plot saved to {plot_path('eval_success_rate')}")
     plt.close()
 
     # Plot 4: Training Shaped vs Env Reward (MA)
@@ -401,8 +417,8 @@ def plot_results(log_filepaths, output_dir="plots", window_size=50):
         for j in range(plot_idx, len(axes)):
             fig.delaxes(axes[j])
         plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, "comparison_train_shaped_vs_env_reward_ma.png"))
-        print(f"Plot saved to {os.path.join(output_dir, 'comparison_train_shaped_vs_env_reward_ma.png')}")
+        plt.savefig(plot_path("train_shaped_vs_env_reward_ma"))
+        print(f"Plot saved to {plot_path('train_shaped_vs_env_reward_ma')}")
         plt.close(fig)
 
     # Plot 5: Evaluation Average Discounted Return
@@ -417,14 +433,13 @@ def plot_results(log_filepaths, output_dir="plots", window_size=50):
                 if not np.all(np.isnan(eval_discounted_returns)):
                     plt.plot(train_episodes, eval_discounted_returns, marker='o', linestyle='-', label=labels[i])
                     plot_generated = True
-            # else: print(f"Warning: 'eval_avg_discounted_return' key missing for {labels[i]}.")
     if plot_generated:
         plt.title('Evaluation Average Discounted Return vs. Training Episode')
         plt.xlabel('Training Episode')
         plt.ylabel('Average Discounted Return')
         plt.legend()
-        plt.savefig(os.path.join(output_dir, "comparison_eval_avg_discounted_return.png"))
-        print(f"Plot saved to {os.path.join(output_dir, 'comparison_eval_avg_discounted_return.png')}")
+        plt.savefig(plot_path("eval_avg_discounted_return"))
+        print(f"Plot saved to {plot_path('eval_avg_discounted_return')}")
     else:
         print("No data found for Evaluation Average Discounted Return plot.")
     plt.close()

@@ -1,35 +1,62 @@
 # FL/q_learning_cp.py
 """
 Q-learning agents with Constraint Programming (CP) based reward shaping (CP-MS, CP-ETR).
+
+No-slip strategy variants (--noslip-strategy):
+
+  fail             Budget épuisé → terminaison immédiate (reward=0). Curriculum croissant.
+                   Pénalité : aucune. Init Q no-slip : -0.1 (pessimiste).
+
+  degrade          Budget épuisé → exécute l'action stochastique équivalente (pas de punition).
+                   Pas de curriculum (budget max dès le début). Init Q no-slip : 0.0.
+
+  penalize         Budget épuisé → terminaison. Chaque action no-slip coûte une pénalité immédiate.
+                   Curriculum croissant. Init Q no-slip : -0.1.
+
+  full-budget      Budget max dès le début, terminaison si dépassé. Pas de curriculum.
+                   Init Q no-slip : 0.0 (neutre).
+
+  inverse-curriculum  Commence avec budget max, réduit progressivement jusqu'à la valeur cible.
+                      L'agent apprend à utiliser no-slip, puis s'adapte à la rareté.
+                      Init Q no-slip : 0.0.
+
+  random-budget    Budget tiré aléatoirement dans [0, max] à chaque épisode.
+                   L'agent apprend à s'adapter à n'importe quel budget résiduel.
+                   Terminaison si dépassé. Init Q no-slip : 0.0.
 """
 import socket
 import random
 import time
 import numpy as np
 import config
-import utils  # For evaluate_agent, get_policy_grid_from_q_table, save_q_table_csv
+import utils
 import datetime
 import os
 
-# Constants for CP server communication
+# ---------------------------------------------------------------------------
+# CP server communication constants
+# ---------------------------------------------------------------------------
 CP_SERVER_HOST = 'localhost'
 CP_SERVER_PORT = 12345
 CP_BUFFER_SIZE = 1024
-CP_TIMEOUT = 10.0  # Timeout for CP socket operations
+CP_TIMEOUT = 10.0
 
 
 def _get_hyperparameters():
-    """ Retrieve Q-learning hyperparameters from the configuration. """
     return (
         config.EPSILON,
         config.LEARNING_RATE,
         config.DISCOUNT_FACTOR,
-        config.EPSILON_DECAY,
         config.EPSILON_MIN,
     )
 
+
+# ---------------------------------------------------------------------------
+# CPRewardClient — socket interface with the Java CP server
+# ---------------------------------------------------------------------------
+
 class CPRewardClient:
-    """ Client for interacting with the CP shaping service over a socket. """
+    """Client for interacting with the CP shaping service over a socket."""
 
     def __init__(self, host=CP_SERVER_HOST, port=CP_SERVER_PORT):
         self.host = host
@@ -38,7 +65,6 @@ class CPRewardClient:
         self.is_connected = False
 
     def connect(self):
-        """ Establishes connection with the CP server. """
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(CP_TIMEOUT)
@@ -51,31 +77,27 @@ class CPRewardClient:
                 print(f"Connected to CP server at {self.host}:{self.port}")
                 return True
             sock.close()
-            print(f"ERROR: Unexpected welcome message from CP server: '{welcome}'")
+            print(f"ERROR: Unexpected welcome from CP server: '{welcome}'")
             return False
         except ConnectionRefusedError:
-            print(f"ERROR: Connection refused by CP server at {self.host}:{self.port}. Is it running?")
+            print(f"ERROR: Connection refused at {self.host}:{self.port}. Is the server running?")
             return False
         except socket.timeout:
-            print(f"ERROR: Timeout connecting to CP server at {self.host}:{self.port}.")
+            print(f"ERROR: Timeout connecting to {self.host}:{self.port}.")
             return False
         except Exception as err:
             print(f"ERROR: Unexpected error connecting to CP server: {err}")
             return False
 
     def send_receive(self, command):
-        """ Sends a command and receives a response from the CP server. """
         if not self.is_connected or self.socket is None:
             return "ERROR Not Connected"
         try:
-            data = f"{command.strip()}\n".encode('utf-8')
-            self.socket.sendall(data)
+            self.socket.sendall(f"{command.strip()}\n".encode('utf-8'))
             response = self.socket.recv(CP_BUFFER_SIZE).decode('utf-8').strip()
-            if not response:
-                return "ERROR Empty Response"
-            return response
+            return response if response else "ERROR Empty Response"
         except socket.timeout:
-            print(f"ERROR: Timeout waiting for response from CP server for command: {command}")
+            print(f"ERROR: Timeout waiting for response to: {command}")
             return "ERROR Timeout"
         except socket.error as e:
             print(f"ERROR: Socket error during send/receive: {e}")
@@ -87,64 +109,59 @@ class CPRewardClient:
             return f"ERROR Communication Failed: {err}"
 
     def query_action_marginal(self, step, action):
-        """ Queries CP server for action marginal probability. """
+        """Queries marginal probability for an action (MS mode only, not used by ETR)."""
         response = self.send_receive(f"QUERY {step} {action}")
         if response.startswith("REWARD "):
             try:
-                value = float(response.split()[1])
-                return max(0.0, min(1.0, value))
+                return max(0.0, min(1.0, float(response.split()[1])))
             except (ValueError, IndexError):
-                print(f"ERROR: Could not parse float from REWARD response: '{response}'")
+                print(f"ERROR: Could not parse REWARD response: '{response}'")
                 return None
         elif response.startswith("ERROR"):
             return None
-        else:
-            print(f"WARN: Unexpected response format for QUERY {step} {action}: '{response}'")
-            return None
+        print(f"WARN: Unexpected QUERY response: '{response}'")
+        return None
 
     def query_etr(self):
-        """ Queries CP server for Expected Total Reward (Success Probability). """
+        """Queries Expected Total Reward (success probability) from the CP model."""
         response = self.send_receive("QUERY_ETR")
         if response.startswith("ETR_VALUE "):
             try:
-                value = float(response.split()[1])
-                return max(0.0, min(1.0, value))  # Ensure value is clamped between 0 and 1
+                return max(0.0, min(1.0, float(response.split()[1])))
             except (ValueError, IndexError):
-                print(f"ERROR: Could not parse float from ETR_VALUE response: '{response}'")
+                print(f"ERROR: Could not parse ETR_VALUE response: '{response}'")
                 return None
         elif response.startswith("ERROR"):
             return None
-        else:
-            print(f"WARN: Unexpected response format for QUERY_ETR: '{response}'")
-            return None
+        print(f"WARN: Unexpected QUERY_ETR response: '{response}'")
+        return None
 
     def send_step(self, step, action, next_state):
-        """ Informs CP server about an environment step. """
         response = self.send_receive(f"STEP {step} {action} {next_state}")
         if response.startswith("OK STEP"):
             return True
-        elif response.startswith("ERROR"):
-            return False
-        else:
-            print(f"WARN: Unexpected response format for STEP {step} {action} {next_state}: '{response}'")
-            return False
+        if not response.startswith("ERROR"):
+            print(f"WARN: Unexpected STEP response: '{response}'")
+        return False
 
     def close(self):
-        """ Closes the socket connection. """
         if self.socket:
             try:
                 self.socket.shutdown(socket.SHUT_RDWR)
                 self.socket.close()
             except socket.error as e:
-                print(f"WARN: Error closing socket (might be already closed): {e}")
+                print(f"WARN: Error closing socket: {e}")
             except Exception as e:
-                print(f"WARN: Unexpected error during socket close: {e}")
+                print(f"WARN: Unexpected error closing socket: {e}")
         self.socket = None
         self.is_connected = False
 
 
+# ---------------------------------------------------------------------------
+# Helper: walk wrapper chain to find FrozenLakeExtendedActions
+# ---------------------------------------------------------------------------
+
 def _get_budget_wrapper(env):
-    """ Remonte la chaîne de wrappers pour trouver FrozenLakeExtendedActions. """
     wrapper = env
     while wrapper is not None:
         if hasattr(wrapper, 'budget'):
@@ -153,27 +170,352 @@ def _get_budget_wrapper(env):
     return None
 
 
+# ---------------------------------------------------------------------------
+# NoslipStrategy — abstract base + 6 concrete variants
+# ---------------------------------------------------------------------------
+
+class NoslipStrategy:
+    """
+    Base class for no-slip action strategies.
+
+    Responsibilities:
+      - Q-table initialization for no-slip actions (columns 4-7)
+      - Budget scheduling (how initial_budget evolves per episode)
+      - Deciding what happens when budget is exhausted
+      - Optional per-step shaping penalty for no-slip use
+    """
+
+    NAME = "base"
+
+    def __init__(self, budget_wrapper, total_episodes):
+        self.wrapper = budget_wrapper
+        self.max_budget = budget_wrapper.initial_budget
+        self.total_episodes = total_episodes
+
+    # -- Q-table init ---------------------------------------------------------
+
+    def init_q_noslip(self, q_table):
+        """Override to set initial Q values for no-slip actions (columns 4-7)."""
+        q_table[:, 4:] = 0.0
+
+    # -- Per-episode budget ---------------------------------------------------
+
+    def update(self, episode):
+        """Called at the start of each episode to set initial_budget."""
+        self.wrapper.initial_budget = self.max_budget  # default: full budget always
+
+    # -- Action masking when budget is exhausted ------------------------------
+
+    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
+        """
+        Epsilon-greedy action selection.
+        budget_exhausted=True means the episode's budget is gone.
+        Default: allow no-slip actions freely (budget exhaustion never triggered here).
+        """
+        if random.random() < epsilon:
+            return env.action_space.sample()
+        return int(np.argmax(q_table[state]))
+
+    # -- What happens when the env returns from a budget-exhausted no-slip? ---
+
+    def handle_budget_exhausted_step(self, env, action):
+        """
+        Called only when action >= 4 AND budget is exhausted.
+        Returns (next_state, env_reward, terminated, truncated, done).
+        Default: terminaison immédiate (même comportement que FrozenLakeExtendedActions).
+        L'environnement gère déjà cela si action >= 4 et budget <= 0,
+        donc cette méthode peut être un no-op pour la stratégie 'fail'.
+        """
+        pass  # env.step() handles it already
+
+    # -- Per-step shaping penalty ---------------------------------------------
+
+    def noslip_step_penalty(self, action):
+        """Returns an immediate reward penalty for using a no-slip action. Default: 0."""
+        return 0.0
+
+    # -- Evaluation with full budget ------------------------------------------
+
+    def eval_with_full_budget(self, env, q_table, max_steps, eval_episodes):
+        saved = self.wrapper.initial_budget
+        self.wrapper.initial_budget = self.max_budget
+        try:
+            return utils.evaluate_agent(env, q_table, max_steps, eval_episodes)
+        finally:
+            self.wrapper.initial_budget = saved
+
+    # -- Logging --------------------------------------------------------------
+
+    def describe(self):
+        return f"Strategy '{self.NAME}' | max_budget={self.max_budget}"
+
+
+# ---- Stratégie 1 : fail (comportement actuel) -------------------------------
+
+class FailStrategy(NoslipStrategy):
+    """
+    Curriculum croissant : budget 0 → max par paliers égaux.
+    Budget épuisé → terminaison immédiate (géré par FrozenLakeExtendedActions).
+    Init Q no-slip : pessimiste (-0.1).
+    Pénalité : aucune.
+    """
+
+    NAME = "fail"
+
+    def __init__(self, budget_wrapper, total_episodes):
+        super().__init__(budget_wrapper, total_episodes)
+        self.stage_size = total_episodes // (self.max_budget + 1)
+
+    def init_q_noslip(self, q_table):
+        q_table[:, 4:] = config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP
+
+    def update(self, episode):
+        stage = min(episode // self.stage_size, self.max_budget)
+        self.wrapper.initial_budget = stage
+
+    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
+        if random.random() < epsilon:
+            return random.randint(0, 3) if budget_exhausted else env.action_space.sample()
+        if budget_exhausted:
+            masked = q_table[state].copy()
+            masked[4:] = -np.inf
+            return int(np.argmax(masked))
+        return int(np.argmax(q_table[state]))
+
+    def describe(self):
+        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
+                f"curriculum: {self.max_budget + 1} stages × {self.stage_size} eps | "
+                f"Q_init_noslip={config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP}")
+
+
+# ---- Stratégie 2 : degrade --------------------------------------------------
+
+class DegradeStrategy(NoslipStrategy):
+    """
+    Budget épuisé → l'action no-slip se dégrade silencieusement en action stochastique.
+    L'agent n'est pas puni : il perd juste le bénéfice déterministe.
+    Pas de curriculum (budget max dès le début). Init Q : 0.0 (neutre).
+
+    Note : cette stratégie nécessite de court-circuiter env.step() pour réaliser
+    la dégradation côté Python, car FrozenLakeExtendedActions terminerait l'épisode.
+    On intercepte l'action avant de l'envoyer à l'env.
+    """
+
+    NAME = "degrade"
+
+    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
+        if random.random() < epsilon:
+            return env.action_space.sample()
+        return int(np.argmax(q_table[state]))
+
+    def effective_action(self, action, budget_exhausted):
+        """
+        Si budget épuisé et action no-slip, retourne l'action stochastique correspondante.
+        Sinon retourne l'action originale.
+        """
+        if budget_exhausted and action >= 4:
+            return action - 4  # dégrade vers l'action stochastique de même direction
+        return action
+
+    def describe(self):
+        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
+                f"no curriculum | budget exhausted → slip fallback | Q_init_noslip=0.0")
+
+
+# ---- Stratégie 3 : penalize -------------------------------------------------
+
+class PenalizeStrategy(NoslipStrategy):
+    """
+    Curriculum croissant (identique à 'fail').
+    Budget épuisé → terminaison immédiate.
+    Chaque usage d'une action no-slip coûte une pénalité immédiate sur le reward.
+    Init Q : pessimiste (-0.1).
+    """
+
+    NAME = "penalize"
+
+    def __init__(self, budget_wrapper, total_episodes):
+        super().__init__(budget_wrapper, total_episodes)
+        self.stage_size = total_episodes // (self.max_budget + 1)
+
+    def init_q_noslip(self, q_table):
+        q_table[:, 4:] = config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP
+
+    def update(self, episode):
+        stage = min(episode // self.stage_size, self.max_budget)
+        self.wrapper.initial_budget = stage
+
+    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
+        if random.random() < epsilon:
+            return random.randint(0, 3) if budget_exhausted else env.action_space.sample()
+        if budget_exhausted:
+            masked = q_table[state].copy()
+            masked[4:] = -np.inf
+            return int(np.argmax(masked))
+        return int(np.argmax(q_table[state]))
+
+    def noslip_step_penalty(self, action):
+        if action >= 4:
+            return -config.NOSLIP_PENALTY_COEFF
+        return 0.0
+
+    def describe(self):
+        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
+                f"curriculum: {self.max_budget + 1} stages × {self.stage_size} eps | "
+                f"penalty={config.NOSLIP_PENALTY_COEFF}/noslip | Q_init_noslip={config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP}")
+
+
+# ---- Stratégie 4 : full-budget ----------------------------------------------
+
+class FullBudgetStrategy(NoslipStrategy):
+    """
+    Budget max dès le début. Pas de curriculum.
+    Budget épuisé → terminaison immédiate.
+    Init Q : 0.0 (neutre — l'agent découvre librement l'utilité des no-slip).
+    """
+
+    NAME = "full-budget"
+
+    def describe(self):
+        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
+                f"no curriculum | budget exhausted → fail | Q_init_noslip=0.0")
+
+
+# ---- Stratégie 5 : inverse-curriculum ---------------------------------------
+
+class InverseCurriculumStrategy(NoslipStrategy):
+    """
+    Curriculum inversé : commence avec budget max, réduit progressivement vers la cible.
+    L'agent apprend d'abord à exploiter les no-slip librement, puis s'adapte à leur rareté.
+    Budget épuisé → terminaison immédiate.
+    Init Q : 0.0.
+    """
+
+    NAME = "inverse-curriculum"
+
+    def __init__(self, budget_wrapper, total_episodes):
+        super().__init__(budget_wrapper, total_episodes)
+        self.stage_size = total_episodes // (self.max_budget + 1)
+
+    def update(self, episode):
+        # Commence à max_budget, diminue progressivement vers 0... puis remonte à max
+        # On fait: max, max-1, ..., 1, 0, 0 (dernier palier = budget final cible)
+        # Note: on veut finir au budget cible (max_budget), donc l'inversé est :
+        # palier 0: budget max, palier 1: max-1, ..., palier max: 0
+        # Mais ça finit à 0 ce qui n'est pas utile. On inverse le curriculum et on
+        # finit à max_budget comme dans 'fail' mais en partant de max.
+        # Stage 0 → budget max_budget, stage max_budget → budget 0
+        stage = min(episode // self.stage_size, self.max_budget)
+        self.wrapper.initial_budget = self.max_budget - stage
+
+    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
+        if random.random() < epsilon:
+            return random.randint(0, 3) if budget_exhausted else env.action_space.sample()
+        if budget_exhausted:
+            masked = q_table[state].copy()
+            masked[4:] = -np.inf
+            return int(np.argmax(masked))
+        return int(np.argmax(q_table[state]))
+
+    def describe(self):
+        stages_desc = [
+            f"ep {i * self.stage_size}-{(i + 1) * self.stage_size}: budget {self.max_budget - i}"
+            for i in range(self.max_budget + 1)
+        ]
+        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
+                f"inverse curriculum: {' | '.join(stages_desc)}")
+
+
+# ---- Stratégie 6 : random-budget --------------------------------------------
+
+class RandomBudgetStrategy(NoslipStrategy):
+    """
+    Budget tiré aléatoirement dans [0, max_budget] à chaque épisode.
+    L'agent apprend à s'adapter à n'importe quelle valeur de budget résiduel.
+    Budget épuisé → terminaison immédiate.
+    Init Q : 0.0.
+    """
+
+    NAME = "random-budget"
+
+    def update(self, episode):
+        self.wrapper.initial_budget = random.randint(0, self.max_budget)
+
+    def select_action(self, state, q_table, epsilon, env, budget_exhausted):
+        if random.random() < epsilon:
+            return random.randint(0, 3) if budget_exhausted else env.action_space.sample()
+        if budget_exhausted:
+            masked = q_table[state].copy()
+            masked[4:] = -np.inf
+            return int(np.argmax(masked))
+        return int(np.argmax(q_table[state]))
+
+    def describe(self):
+        return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
+                f"budget ~ Uniform[0, {self.max_budget}] per episode | Q_init_noslip=0.0")
+
+
+# ---------------------------------------------------------------------------
+# Registry
+# ---------------------------------------------------------------------------
+
+NOSLIP_STRATEGIES = {
+    'fail':               FailStrategy,
+    'degrade':            DegradeStrategy,
+    'penalize':           PenalizeStrategy,
+    'full-budget':        FullBudgetStrategy,
+    'inverse-curriculum': InverseCurriculumStrategy,
+    'random-budget':      RandomBudgetStrategy,
+}
+
+
+def make_noslip_strategy(name, budget_wrapper, total_episodes):
+    cls = NOSLIP_STRATEGIES.get(name)
+    if cls is None:
+        raise ValueError(f"Unknown no-slip strategy '{name}'. "
+                         f"Available: {list(NOSLIP_STRATEGIES.keys())}")
+    return cls(budget_wrapper, total_episodes)
+
+
+# ---------------------------------------------------------------------------
+# Training function
+# ---------------------------------------------------------------------------
+
 def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, shaping_type, size, holes, goal,
-                                     shaping_method_name, instance_id):
-    """ Trains using CP shaping. Uses optimistic Q initialization. """
+                                     instance_id, noslip_strategy_name='fail'):
+    """
+    Trains a Q-learning agent with CP-based reward shaping (ETR or MS).
+
+    Args:
+        noslip_strategy_name: one of 'fail', 'degrade', 'penalize',
+                              'full-budget', 'inverse-curriculum', 'random-budget'.
+                              Only used when action_size == 8 (budget mode).
+    """
     print(f"Starting CP shaped training ({shaping_type}): {total_episodes} episodes")
     state_size = env.observation_space.n
     action_size = env.action_space.n
 
+    # Q-table initialization
     if shaping_type == 'cp-ms':
         q_init_val = config.Q_INIT_VALUE_CP_MS
     elif shaping_type == 'cp-etr':
         q_init_val = config.Q_INIT_VALUE_CP_ETR
-    elif shaping_type == 'cp-etr-budget':
-        q_init_val = config.Q_INIT_VALUE_CP_ETR_BUDGET
     else:
-        print(f"Warning: Unknown CP shaping type '{shaping_type}' for Q_INIT. Defaulting to 0.05.")
-        q_init_val = 0.05
+        print(f"Warning: Unknown CP shaping type '{shaping_type}'. Defaulting Q_init to 0.0.")
+        q_init_val = 0.0
     q_table = np.full((state_size, action_size), q_init_val)
 
-    if shaping_type == 'cp-etr-budget':
-        q_table[:, 4:] = config.Q_INIT_VALUE_CP_ETR_BUDGET
-    epsilon, lr, gamma_discount, _, eps_min = _get_hyperparameters()
+    # Strategy setup (only in 8-action / budget mode)
+    budget_wrapper = _get_budget_wrapper(env) if action_size == 8 else None
+    strategy = None
+    if budget_wrapper is not None:
+        strategy = make_noslip_strategy(noslip_strategy_name, budget_wrapper, total_episodes)
+        strategy.init_q_noslip(q_table)
+        print(f"  No-slip strategy: {strategy.describe()}")
+    else:
+        print(f"  No-slip strategy: N/A (4-action mode)")
+
+    epsilon, lr, gamma_discount, eps_min = _get_hyperparameters()
     eps_decay = (eps_min / epsilon) ** (1.0 / total_episodes)
     episode_log, evaluation_log = [], []
 
@@ -181,22 +523,23 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
         print("ERROR: CP client not connected. Aborting training.")
         return q_table, episode_log, evaluation_log
 
-    cp_ms_coeff = 0.2
     total_steps_processed = 0
-
-    # Récupère le wrapper budget une fois (si applicable)
-    budget_wrapper = _get_budget_wrapper(env) if shaping_type == 'cp-etr-budget' else None
+    global_noslip_by_state = {}
 
     for episode in range(total_episodes):
-        state, info = env.reset()
+        # Update budget for this episode
+        if strategy is not None:
+            strategy.update(episode)
+
+        state, _ = env.reset()
         reset_response = cp_client.send_receive("RESET")
         if not reset_response.startswith("OK RESET"):
-            print(f"ERROR: CP Server RESET failed: {reset_response}. Aborting training.")
+            print(f"ERROR: CP Server RESET failed: {reset_response}. Aborting.")
             break
 
+        # Initial ETR query (ETR mode only)
         etr_before = None
-        etr_after = None
-        if shaping_type in ['cp-etr', 'cp-etr-budget']:
+        if shaping_type == 'cp-etr':
             etr_before = cp_client.query_etr()
             if etr_before is None:
                 print(f"WARN: Failed initial ETR query Ep {episode + 1}. Setting to 0.")
@@ -208,94 +551,98 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
         final_reward = 0.0
         done = False
         terminated = False
-        truncated = False
+        noslip_count = 0
 
         for step_idx in range(max_steps):
-            noslip_count = 0
             total_steps_processed += 1
             episode_steps += 1
-            current_state_debug = state
-            current_step_marginals = {}
+            current_state = state
 
+            # MS mode: pre-fetch marginals for all actions
+            current_step_marginals = {}
             if shaping_type == 'cp-ms':
                 for a_query in range(action_size):
                     marginal = cp_client.query_action_marginal(step_idx, a_query)
                     if marginal is not None:
                         current_step_marginals[a_query] = marginal
                     else:
-                        print(
-                            f"WARN: Failed marginal query Ep {episode + 1}/St {step_idx} for S{current_state_debug}, A{a_query}. Using 0.")
+                        print(f"WARN: Failed marginal query Ep {episode + 1}/St {step_idx} "
+                              f"S{current_state}/A{a_query}. Using 0.")
                         current_step_marginals[a_query] = 0.0
 
-            # Récupère le budget courant pour cp-etr-budget
-            current_budget = budget_wrapper.budget if budget_wrapper is not None else None
+            # Compute budget state
+            current_budget = strategy.wrapper.budget if strategy is not None else None
+            budget_exhausted = current_budget is not None and current_budget <= 0
 
-            # Epsilon-greedy action selection avec masquage si budget épuisé
-            if random.random() < epsilon:
-                if shaping_type == 'cp-etr-budget' and current_budget <= 0:
-                    action = random.randint(0, 3)  # Seulement actions normales
-                else:
-                    action = env.action_space.sample()
+            # Action selection (delegated to strategy)
+            if not (0 <= state < state_size):
+                print(f"ERROR: Invalid state {state} Ep {episode + 1}/St {step_idx}. Stopping.")
+                break
+
+            if strategy is not None:
+                action = strategy.select_action(state, q_table, epsilon, env, budget_exhausted)
             else:
-                if not (0 <= state < state_size):
-                    print(f"ERROR: Invalid state {state} Ep {episode + 1}/St {step_idx}. Stopping episode.")
-                    break
-                if shaping_type == 'cp-etr-budget' and current_budget <= 0:
-                    masked_q = q_table[state].copy()
-                    masked_q[4:] = -np.inf  # Masque actions no-slip
-                    action = int(np.argmax(masked_q))
-                else:
-                    action = int(np.argmax(q_table[state]))
+                action = (env.action_space.sample() if random.random() < epsilon
+                          else int(np.argmax(q_table[state])))
+
+            # For 'degrade' strategy: silently replace no-slip with slip when exhausted
+            env_action = action
+            if isinstance(strategy, DegradeStrategy) and budget_exhausted and action >= 4:
+                env_action = strategy.effective_action(action, budget_exhausted)
+                # We keep `action` as the Q-table key (agent intended no-slip)
+                # but execute `env_action` (stochastic version) in the environment.
 
             if action >= 4:
                 noslip_count += 1
-            raw_cp_shaping_reward = 0.0
-            reward_used_for_update = 0.0
+                global_noslip_by_state[state] = global_noslip_by_state.get(state, 0) + 1
 
+            # Environment step
             try:
-                next_state, env_reward, terminated, truncated, info = env.step(action)
+                next_state, env_reward, terminated, truncated, _ = env.step(env_action)
                 done = terminated or truncated
             except Exception as err:
                 print(f"ERROR: env.step exception: {err}. Stopping episode.")
                 break
 
-            step_ok = cp_client.send_step(step_idx, action, next_state)
-
+            # Inform CP server of the actual action + next state
+            step_ok = cp_client.send_step(step_idx, env_action, next_state)
             if not step_ok:
-                print(f"WARN: CP Server failed STEP {step_idx} processing. CP state may be inconsistent.")
-                break  # Stop propre dans tous les cas
+                print(f"WARN: CP Server STEP {step_idx} failed. CP state may be inconsistent.")
+                break
 
-            # Calculate shaping reward
+            # Per-step no-slip penalty (strategy-dependent)
+            noslip_penalty = strategy.noslip_step_penalty(action) if strategy is not None else 0.0
+
+            # Shaped reward computation
             if shaping_type == 'cp-ms':
-                action_marginal = current_step_marginals.get(action, 0.0)
-                raw_cp_shaping_reward = cp_ms_coeff * (action_marginal - 0.25)
-                reward_used_for_update = env_reward + raw_cp_shaping_reward
-            elif shaping_type in ['cp-etr', 'cp-etr-budget'] and step_ok:
+                action_marginal = current_step_marginals.get(env_action, 0.0)
+                cp_shaping = config.CP_MS_SHAPING_COEFF * (action_marginal - 0.25)
+                reward_used_for_update = env_reward + cp_shaping + noslip_penalty
+            elif shaping_type == 'cp-etr':
                 etr_after = cp_client.query_etr()
                 if etr_after is None or etr_before is None:
-                    print(f"WARN: Failed ETR query after step {step_idx}. Using env_reward for update.")
-                    raw_cp_shaping_reward = 0.0
-                    reward_used_for_update = env_reward
+                    print(f"WARN: Failed ETR query after step {step_idx}. Using env_reward.")
+                    reward_used_for_update = env_reward + noslip_penalty
                 else:
-                    raw_cp_shaping_reward = etr_after - etr_before
-                    reward_used_for_update = raw_cp_shaping_reward
+                    cp_shaping = etr_after - etr_before
+                    reward_used_for_update = cp_shaping + noslip_penalty
+                    # Negative signal on hole: wipe out accumulated ETR progress
                     if terminated and env_reward == 0.0 and step_idx < max_steps - 1:
-                        reward_used_for_update = 0.0 - (etr_before if etr_before is not None else 0.0)
+                        reward_used_for_update = -etr_before + noslip_penalty
                     etr_before = etr_after
             else:
-                raw_cp_shaping_reward = 0.0
-                reward_used_for_update = env_reward
+                reward_used_for_update = env_reward + noslip_penalty
 
             shaped_reward_sum += reward_used_for_update
 
-            # Q-table update
             if not (0 <= next_state < state_size):
-                print(f"ERROR: Invalid next_state {next_state} Ep {episode + 1}/St {step_idx}. Stopping episode.")
+                print(f"ERROR: Invalid next_state {next_state}. Stopping episode.")
                 break
-            best_next_action_q_value = np.max(q_table[next_state])
-            td_target = reward_used_for_update + gamma_discount * best_next_action_q_value * (1 - int(done))
-            td_error = td_target - q_table[current_state_debug, action]
-            q_table[current_state_debug, action] += lr * td_error
+
+            # Bellman update
+            best_next_q = np.max(q_table[next_state])
+            td_target = reward_used_for_update + gamma_discount * best_next_q * (1 - int(done))
+            q_table[current_state, action] += lr * (td_target - q_table[current_state, action])
 
             env_reward_sum += env_reward
             state = next_state
@@ -304,39 +651,67 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                 break
 
         success = int(final_reward == 1.0 and terminated)
-        # print(f"Ep {episode+1}: no-slip utilisés = {noslip_count} / {budget_wrapper.initial_budget if budget_wrapper else 'N/A'}")
         episode_log.append({
             'episode': episode + 1, 'steps': episode_steps,
             'env_reward': env_reward_sum, 'shaped_reward': shaped_reward_sum,
-            'success': success
+            'success': success,
+            'noslip_used': noslip_count
         })
         epsilon = max(epsilon * eps_decay, eps_min)
 
+        # Periodic evaluation
         if (episode + 1) % config.EVAL_FREQUENCY == 0 or (episode + 1) == total_episodes:
-            sr, ar_undisc, ar_disc, avg_ss, avg_sf = utils.evaluate_agent(env, q_table, max_steps, config.EVAL_EPISODES)
+            sr, ar_undisc, ar_disc, avg_ss, avg_sf = utils.evaluate_agent(
+                env, q_table, max_steps, config.EVAL_EPISODES)
             evaluation_log.append({
                 'training_episode': episode + 1, 'eval_success_rate': sr,
                 'eval_avg_return': ar_undisc, 'eval_avg_discounted_return': ar_disc,
                 'avg_steps_success': avg_ss, 'avg_steps_failure': avg_sf
             })
-            print(f"\n--- Evaluation at Episode {episode + 1}/{total_episodes} ({shaping_type}) ---")
+
+            print(f"\n--- Eval Ep {episode + 1}/{total_episodes} [{shaping_type}] ---")
             print(f"  Success Rate:              {sr:.2%}")
             print(f"  Avg Return (Undiscounted): {ar_undisc:.4f}")
             print(f"  Avg Discounted Return:     {ar_disc:.4f}")
-            print(f"  Avg Steps (Success/Failure): {avg_ss:.1f} / {avg_sf:.1f}")
-            print(f"  Current Epsilon:           {epsilon:.4f}")
-            print("  Current Greedy Policy:")
+            print(f"  Avg Steps (Succ/Fail):     {avg_ss:.1f} / {avg_sf:.1f}")
+            print(f"  Epsilon:                   {epsilon:.4f}")
+
+            if strategy is not None:
+                current_stage_budget = strategy.wrapper.initial_budget
+                print(f"  Budget (episode initial):  {current_stage_budget}/{strategy.max_budget}")
+                top5 = sorted(global_noslip_by_state.items(), key=lambda x: -x[1])[:5]
+                print(f"  No-slip top-5 états:       {top5}")
+                recent = episode_log[-config.EVAL_FREQUENCY:]
+                succ_ns = [e['noslip_used'] for e in recent if e['success'] == 1]
+                fail_ns = [e['noslip_used'] for e in recent if e['success'] == 0]
+                print(f"  No-slip moy. (succès): {np.mean(succ_ns):.2f}" if succ_ns
+                      else "  No-slip moy. (succès): N/A")
+                print(f"  No-slip moy. (échec):  {np.mean(fail_ns):.2f}" if fail_ns
+                      else "  No-slip moy. (échec):  N/A")
+
+                # Extra eval with full budget (only if current stage < max)
+                if current_stage_budget < strategy.max_budget:
+                    sr_full, _, ar_disc_full, _, _ = strategy.eval_with_full_budget(
+                        env, q_table, max_steps, config.EVAL_EPISODES)
+                    print(f"  [Budget max={strategy.max_budget}] "
+                          f"SR={sr_full:.2%} | DiscReturn={ar_disc_full:.4f}")
+
+            print("  Greedy Policy:")
             policy_grid = utils.get_policy_grid_from_q_table(q_table, size, holes, goal)
-            if policy_grid:
-                for row_str in policy_grid:
-                    print(f"    {row_str}")
-            else:
-                print("    (Could not generate policy grid)")
-            print("-" * (4 + size + 1))
+            for row_str in (policy_grid or ["(Could not generate)"]):
+                print(f"    {row_str}")
+            print("-" * (size + 5))
+
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            q_filename = os.path.join("results",
-                                      f"q_{shaping_method_name}_{instance_id}_{total_episodes}eps_{episode + 1}eval_{timestamp}.csv")
+            q_filename = os.path.join(
+                "results",
+                f"q_{shaping_type}_{noslip_strategy_name}_{instance_id}_{total_episodes}eps_{episode + 1}eval_{timestamp}.csv"
+            )
             utils.save_q_table_csv(q_table, q_filename)
 
-    print(f"CP shaped ({shaping_type}) training complete. Total steps: {total_steps_processed}")
+    print(f"\nTraining complete ({shaping_type}, strategy={noslip_strategy_name}). "
+          f"Total steps: {total_steps_processed}")
+    if action_size == 8:
+        top10 = sorted(global_noslip_by_state.items(), key=lambda x: -x[1])[:10]
+        print(f"No-slip global top-10: {top10}")
     return q_table, episode_log, evaluation_log
