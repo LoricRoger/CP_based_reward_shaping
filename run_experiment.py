@@ -207,10 +207,10 @@ def run_all(instances, methods, seeds, episodes, output_dir, force) -> dict:
                 data[(inst, meth, seed)] = None
                 continue
 
-            # Find result.json inside tmp_dir (inside the run subdir)
-            result_files = list(Path(tmp_dir).rglob("result.json"))
+            # Find *_log.json inside tmp_dir
+            result_files = list(Path(tmp_dir).rglob("*_log.json"))
             if not result_files:
-                print(f"  [WARN]  Run OK but no result.json found in tmp dir")
+                print(f"  [WARN]  Run OK but no result log found in tmp dir")
                 data[(inst, meth, seed)] = None
                 continue
 
@@ -218,13 +218,13 @@ def run_all(instances, methods, seeds, episodes, output_dir, force) -> dict:
                 with open(result_files[0]) as f:
                     raw = json.load(f)
             except Exception as e:
-                print(f"  [WARN]  Could not read result.json: {e}")
+                print(f"  [WARN]  Could not read result log: {e}")
                 data[(inst, meth, seed)] = None
                 continue
 
             entry = _extract_entry(raw)
             if entry is None:
-                print(f"  [WARN]  result.json has no evaluation_log")
+                print(f"  [WARN]  Result log has no evaluation_log")
                 data[(inst, meth, seed)] = None
                 continue
 
