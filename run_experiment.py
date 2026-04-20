@@ -44,6 +44,8 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+from tqdm import tqdm
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -206,7 +208,7 @@ def _extract_entry(log: dict) -> dict | None:
 # ---------------------------------------------------------------------------
 
 def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str,
-               port: int = 12345) -> list[str]:
+               port: int = 12345, no_compile: bool = False) -> list[str]:
     base, budget, strategy = _parse_method(meth)
     agent, shaping = METHOD_ARGS[base]
     cmd = [
@@ -227,6 +229,8 @@ def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str,
         cmd += ["--noslip-strategy", strategy]
     if base in JAVA_METHODS:
         cmd += ["--port", str(port)]
+        if no_compile:
+            cmd += ["--no-compile"]
     return cmd
 
 
@@ -236,53 +240,96 @@ def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str,
 
 def _run_one(inst: str, meth: str, seed: int, episodes: int,
              output_dir: Path, tag: str, print_lock: threading.Lock,
-             port: int = 12345) -> tuple[tuple, dict | None]:
+             port: int = 12345, no_compile: bool = False,
+             progress_bar: "tqdm | None" = None) -> tuple[tuple, dict | None]:
     """Execute a single (inst, meth, seed) run and return ((inst, meth, seed), entry)."""
     tmp_dir = tempfile.mkdtemp(prefix="fl_run_")
+
+    def _done(msg: str, entry):
+        with print_lock:
+            tqdm.write(msg)
+            if progress_bar is not None:
+                progress_bar.update(1)
+        return (inst, meth, seed), entry
+
     try:
-        cmd = _build_cmd(meth, inst, episodes, seed, tmp_dir, port=port)
+        cmd = _build_cmd(meth, inst, episodes, seed, tmp_dir, port=port, no_compile=no_compile)
         result = subprocess.run(
             cmd, cwd=str(ROOT), capture_output=True, text=True, timeout=7200,
         )
         if result.returncode != 0:
             lines = (result.stdout + result.stderr).strip().splitlines()[-20:]
-            with print_lock:
-                print(f"  [ERROR] {tag} — exit code {result.returncode}")
-                for line in lines:
-                    print(f"    {line}")
-            return (inst, meth, seed), None
+            msg = f"  [ERROR] {tag} — exit code {result.returncode}\n" + "\n".join(f"    {l}" for l in lines)
+            return _done(msg, None)
 
         result_files = list(Path(tmp_dir).rglob("*_log.json"))
         if not result_files:
-            with print_lock:
-                print(f"  [WARN]  {tag} — run OK but no result log found")
-            return (inst, meth, seed), None
+            return _done(f"  [WARN]  {tag} — run OK but no result log found", None)
 
         with open(result_files[0]) as f:
             raw = json.load(f)
 
         entry = _extract_entry(raw)
         if entry is None:
-            with print_lock:
-                print(f"  [WARN]  {tag} — result log has no evaluation_log")
-            return (inst, meth, seed), None
+            return _done(f"  [WARN]  {tag} — result log has no evaluation_log", None)
 
         _save_cache(output_dir, inst, meth, seed, episodes, entry)
-        with print_lock:
-            print(f"  [OK]    {tag}")
-        return (inst, meth, seed), entry
+        return _done(f"  [OK]    {tag}", entry)
 
     except subprocess.TimeoutExpired:
-        with print_lock:
-            print(f"  [ERROR] {tag} — timeout (>7200 s)")
-        return (inst, meth, seed), None
+        return _done(f"  [ERROR] {tag} — timeout (>7200 s)", None)
     except Exception as exc:
         with print_lock:
-            print(f"  [ERROR] {tag} — {exc}")
+            tqdm.write(f"  [ERROR] {tag} — {exc}")
             traceback.print_exc()
+            if progress_bar is not None:
+                progress_bar.update(1)
         return (inst, meth, seed), None
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def _precompile_java(print_lock: threading.Lock) -> bool:
+    """Run 'mvn compile' + generate classpath file once. Returns True on success."""
+    cp_dir = ROOT / "MiniCPBP"
+    if not cp_dir.is_dir():
+        cp_dir = ROOT / "java"
+    pom = cp_dir / "pom.xml"
+    if not pom.is_file():
+        with print_lock:
+            print("[ERROR] pom.xml not found — cannot pre-compile Java.")
+        return False
+    mvn_exec = "mvn.cmd" if sys.platform == "win32" else "mvn"
+    cp_file = cp_dir / "target" / "java_classpath.txt"
+
+    # Step 1: compile
+    cmd_compile = [mvn_exec, "-f", str(pom), "compile", "-Dexec.cleanupDaemonThreads=false"]
+    with print_lock:
+        print(f"[PRE-COMPILE] {' '.join(cmd_compile)}")
+    result = subprocess.run(cmd_compile, cwd=str(ROOT), capture_output=True, text=True, timeout=300)
+    if result.returncode != 0:
+        with print_lock:
+            print("[ERROR] Maven pre-compile failed:")
+            for line in (result.stdout + result.stderr).strip().splitlines()[-30:]:
+                print(f"  {line}")
+        return False
+
+    # Step 2: generate classpath file for direct java invocation
+    cmd_cp = [mvn_exec, "-f", str(pom),
+              "dependency:build-classpath",
+              f"-Dmdep.outputFile={cp_file}",
+              "-q"]
+    result2 = subprocess.run(cmd_cp, cwd=str(cp_dir), capture_output=True, text=True, timeout=120)
+    if result2.returncode != 0 or not cp_file.exists():
+        with print_lock:
+            print("[ERROR] Maven dependency:build-classpath failed:")
+            for line in (result2.stdout + result2.stderr).strip().splitlines()[-10:]:
+                print(f"  {line}")
+        return False
+
+    with print_lock:
+        print("[PRE-COMPILE] Done.\n")
+    return True
 
 
 def run_all(instances, methods, seeds, episodes, output_dir, force,
@@ -310,6 +357,15 @@ def run_all(instances, methods, seeds, episodes, output_dir, force,
     for i in range(workers):
         port_pool.put(base_port + i)
 
+    # Pre-compile Java once if workers > 1 and Java methods are present
+    needs_java = any(_parse_method(m)[0] in JAVA_METHODS for m in methods)
+    no_compile = False
+    if workers > 1 and needs_java:
+        if not _precompile_java(print_lock):
+            print("[WARN] Pre-compile failed; workers will each compile (may conflict).")
+        else:
+            no_compile = True
+
     start_time = time.time()
 
     print(f"\n{'=' * 60}")
@@ -323,11 +379,14 @@ def run_all(instances, methods, seeds, episodes, output_dir, force,
         tag = f"[{idx:{w}}/{total}] {inst:<10} {meth:<16} seed={seed}"
         cached = _load_cache(output_dir, inst, meth, seed, episodes)
         if cached is not None and not force:
-            print(f"{tag}  --> SKIP  (cached)")
+            tqdm.write(f"{tag}  --> SKIP  (cached)")
             data[(inst, meth, seed)] = cached
             skipped += 1
         else:
             pending.append((inst, meth, seed, tag))
+
+    pbar = tqdm(total=total, initial=skipped, desc="Progress",
+                unit="run", dynamic_ncols=True, leave=True)
 
     def _worker_with_port(inst, meth, seed, tag):
         """Wrapper qui gère l'acquisition/libération du port pour les runs Java."""
@@ -335,11 +394,13 @@ def run_all(instances, methods, seeds, episodes, output_dir, force,
         if base in JAVA_METHODS:
             port = port_pool.get()
             try:
-                return _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock, port=port)
+                return _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock,
+                                port=port, no_compile=no_compile, progress_bar=pbar)
             finally:
                 port_pool.put(port)
         else:
-            return _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock)
+            return _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock,
+                            progress_bar=pbar)
 
     if pending and workers > 1:
         with ThreadPoolExecutor(max_workers=workers) as executor:
@@ -354,13 +415,16 @@ def run_all(instances, methods, seeds, episodes, output_dir, force,
                 except Exception as exc:
                     key = futures[future]
                     with print_lock:
-                        print(f"  [ERROR] {key}: {exc}")
+                        tqdm.write(f"  [ERROR] {key}: {exc}")
+                        pbar.update(1)
                     data[key] = None
     else:
         for inst, meth, seed, tag in pending:
-            print(f"{tag}  --> running ...", flush=True)
+            tqdm.write(f"{tag}  --> running ...", )
             _, entry = _worker_with_port(inst, meth, seed, tag)
             data[(inst, meth, seed)] = entry
+
+    pbar.close()
 
     elapsed = time.time() - start_time
     minutes, seconds = divmod(int(elapsed), 60)
