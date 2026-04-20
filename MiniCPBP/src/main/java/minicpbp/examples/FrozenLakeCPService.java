@@ -26,7 +26,7 @@ import org.json.JSONException;
 
 public class FrozenLakeCPService {
 
-    private static final int PORT = 12345;
+    private static int PORT = 12345;
     private static final String INSTANCES_JSON_FILE = "instances.json";
 
     private static int squareSize = -1;
@@ -66,6 +66,14 @@ public class FrozenLakeCPService {
                 budgetArg = Integer.parseInt(args[1]);
             } catch (NumberFormatException e) {
                 System.err.println("FATAL: Budget invalide '" + args[1] + "'. Doit être un entier.");
+                System.exit(1);
+            }
+        }
+        if (args.length > 2) {
+            try {
+                PORT = Integer.parseInt(args[2]);
+            } catch (NumberFormatException e) {
+                System.err.println("FATAL: Port invalide '" + args[2] + "'. Doit être un entier.");
                 System.exit(1);
             }
         }
