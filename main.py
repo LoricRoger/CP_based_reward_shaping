@@ -33,6 +33,7 @@ def main():
                         ))
     parser.add_argument('--episodes', type=int, default=500, help="Training episodes for Q-learning")
     parser.add_argument('--seed', type=int, default=None, help="Random seed to override config.seed_value")
+    parser.add_argument('--port', type=int, default=12345, help="TCP port for the Java CP server (default: 12345)")
     parser.add_argument('--results-dir', type=str, default=None, help="Directory to store result logs")
     args = parser.parse_args()
 
@@ -137,17 +138,17 @@ def main():
         # La classe principale est désormais TOUJOURS la même
         main_class_arg = '-Dexec.mainClass=minicpbp.examples.FrozenLakeCPService'
 
-        # Choose Java mode and pass optional budget argument
-        budget_suffix = f" {args.budget}" if args.budget > 0 else ""
+        # Determine Java mode; args passés à Java : "mode budget port"
         if args.agent == 'cp_greedy' or args.shaping == 'cp-ms':
-            java_mode = f"MS{budget_suffix}"
+            mode_str = "MS"
         elif args.shaping == 'cp-etr':
-            java_mode = f"ETR{budget_suffix}"
+            mode_str = "ETR"
         else:
             print(f"ERROR: Cannot determine Java mode for agent='{args.agent}', shaping='{args.shaping}'.")
             env.close()
             return
-        cmd = base_cmd_args + [main_class_arg, f'-Dexec.args={java_mode}']
+        java_args = f"{mode_str} {args.budget} {args.port}"
+        cmd = base_cmd_args + [main_class_arg, f'-Dexec.args={java_args}']
 
         print(f"Starting Java server for CP agent: {' '.join(cmd)}")
 
@@ -163,7 +164,7 @@ def main():
                 env.close()
                 return
             print("Java server presumed started.")
-            cp_client = q_learning_cp.CPRewardClient()
+            cp_client = q_learning_cp.CPRewardClient(port=args.port)
             if not cp_client.connect():
                 print("ERROR: Failed to connect to CP server.")
                 _print_logs(java_stderr_log, java_stdout_log)

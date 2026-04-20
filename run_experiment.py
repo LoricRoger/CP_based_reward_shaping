@@ -11,7 +11,8 @@ Options:
     --instances ID...   Instance IDs to benchmark         (default: 4s 4medium 4hard 8s 8medium 8hard)
     --methods M...      Methods to benchmark              (default: all five)
     --output-dir DIR    Directory for all outputs         (default: ./experiment_results)
-    --workers N         Parallel workers for non-Java methods (default: 1)
+    --workers N         Parallel workers (default: 1). Java methods utilisent un port dédié par worker.
+    --base-port P       Premier port TCP pour les serveurs Java (default: 12345)
     --force             Re-run even if cache entry exists
     --plots-only        Skip running, only regenerate plots/table from cached data
 
@@ -32,6 +33,7 @@ Cache:
 import argparse
 import csv
 import json
+import queue
 import shutil
 import time
 import subprocess
@@ -203,7 +205,8 @@ def _extract_entry(log: dict) -> dict | None:
 # Subprocess command builder
 # ---------------------------------------------------------------------------
 
-def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str) -> list[str]:
+def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str,
+               port: int = 12345) -> list[str]:
     base, budget, strategy = _parse_method(meth)
     agent, shaping = METHOD_ARGS[base]
     cmd = [
@@ -222,6 +225,8 @@ def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str) -> 
         cmd += ["--budget", str(budget)]
     if strategy:
         cmd += ["--noslip-strategy", strategy]
+    if base in JAVA_METHODS:
+        cmd += ["--port", str(port)]
     return cmd
 
 
@@ -230,11 +235,12 @@ def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str) -> 
 # ---------------------------------------------------------------------------
 
 def _run_one(inst: str, meth: str, seed: int, episodes: int,
-             output_dir: Path, tag: str, print_lock: threading.Lock) -> tuple[tuple, dict | None]:
+             output_dir: Path, tag: str, print_lock: threading.Lock,
+             port: int = 12345) -> tuple[tuple, dict | None]:
     """Execute a single (inst, meth, seed) run and return ((inst, meth, seed), entry)."""
     tmp_dir = tempfile.mkdtemp(prefix="fl_run_")
     try:
-        cmd = _build_cmd(meth, inst, episodes, seed, tmp_dir)
+        cmd = _build_cmd(meth, inst, episodes, seed, tmp_dir, port=port)
         result = subprocess.run(
             cmd, cwd=str(ROOT), capture_output=True, text=True, timeout=7200,
         )
@@ -280,13 +286,14 @@ def _run_one(inst: str, meth: str, seed: int, episodes: int,
 
 
 def run_all(instances, methods, seeds, episodes, output_dir, force,
-            workers: int = 1) -> dict:
+            workers: int = 1, base_port: int = 12345) -> dict:
     """
     Launch main.py for each (instance, method, seed) not already cached.
 
-    workers > 1 enables parallel execution, but only for non-Java methods
-    (q-none, q-classic, optimal). Java methods (q-cp-ms, q-cp-etr, cp-greedy)
-    always run sequentially to avoid port conflicts.
+    workers > 1 enables parallel execution for all methods:
+    - Non-Java (q-none, q-classic, optimal) : partagent les workers
+    - Java (q-cp-ms, q-cp-etr, cp-greedy)  : chaque worker reçoit un port
+      dédié du pool [base_port, base_port + workers - 1]
     """
     runs = [(inst, meth, seed)
             for inst in instances
@@ -297,6 +304,11 @@ def run_all(instances, methods, seeds, episodes, output_dir, force,
     w = len(str(total))
     data: dict[tuple, dict | None] = {}
     print_lock = threading.Lock()
+
+    # Pool de ports pour les workers Java
+    port_pool: queue.Queue[int] = queue.Queue()
+    for i in range(workers):
+        port_pool.put(base_port + i)
 
     start_time = time.time()
 
@@ -317,21 +329,23 @@ def run_all(instances, methods, seeds, episodes, output_dir, force,
         else:
             pending.append((inst, meth, seed, tag))
 
-    # Split pending into parallelisable (no Java) and sequential (Java)
-    base_of = {(inst, meth, seed): _parse_method(meth)[0]
-               for inst, meth, seed, _ in pending}
-    parallel_runs = [(inst, meth, seed, tag) for inst, meth, seed, tag in pending
-                     if base_of[(inst, meth, seed)] not in JAVA_METHODS]
-    sequential_runs = [(inst, meth, seed, tag) for inst, meth, seed, tag in pending
-                       if base_of[(inst, meth, seed)] in JAVA_METHODS]
+    def _worker_with_port(inst, meth, seed, tag):
+        """Wrapper qui gère l'acquisition/libération du port pour les runs Java."""
+        base = _parse_method(meth)[0]
+        if base in JAVA_METHODS:
+            port = port_pool.get()
+            try:
+                return _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock, port=port)
+            finally:
+                port_pool.put(port)
+        else:
+            return _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock)
 
-    if parallel_runs and workers > 1:
-        print(f"  [parallel] {len(parallel_runs)} non-Java runs with {workers} workers")
+    if pending and workers > 1:
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {
-                executor.submit(_run_one, inst, meth, seed, episodes,
-                                output_dir, tag, print_lock): (inst, meth, seed)
-                for inst, meth, seed, tag in parallel_runs
+                executor.submit(_worker_with_port, inst, meth, seed, tag): (inst, meth, seed)
+                for inst, meth, seed, tag in pending
             }
             for future in as_completed(futures):
                 try:
@@ -343,17 +357,9 @@ def run_all(instances, methods, seeds, episodes, output_dir, force,
                         print(f"  [ERROR] {key}: {exc}")
                     data[key] = None
     else:
-        for inst, meth, seed, tag in parallel_runs:
+        for inst, meth, seed, tag in pending:
             print(f"{tag}  --> running ...", flush=True)
-            _, entry = _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock)
-            data[(inst, meth, seed)] = entry
-
-    if sequential_runs:
-        if workers > 1:
-            print(f"  [sequential] {len(sequential_runs)} Java runs (toujours séquentiel)")
-        for inst, meth, seed, tag in sequential_runs:
-            print(f"{tag}  --> running ...", flush=True)
-            _, entry = _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock)
+            _, entry = _worker_with_port(inst, meth, seed, tag)
             data[(inst, meth, seed)] = entry
 
     elapsed = time.time() - start_time
@@ -558,8 +564,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT,
                         help=f"Root output directory (default: {DEFAULT_OUTPUT})")
     parser.add_argument("--workers", type=int, default=1,
-                        help="Parallel workers for non-Java methods (default: 1 = sequential). "
-                             "Java methods (q-cp-ms, q-cp-etr, cp-greedy) always run sequentially.")
+                        help="Parallel workers (default: 1 = sequential). "
+                             "Java methods utilisent un port dédié par worker.")
+    parser.add_argument("--base-port", type=int, default=12345,
+                        help="Premier port TCP pour les serveurs Java (default: 12345). "
+                             "Worker i utilise base_port + i.")
     parser.add_argument("--force", action="store_true",
                         help="Re-run even if a cache entry already exists")
     parser.add_argument("--plots-only", action="store_true",
@@ -588,6 +597,7 @@ def main() -> None:
             output_dir=args.output_dir,
             force=args.force,
             workers=args.workers,
+            base_port=args.base_port,
         )
     else:
         print("--plots-only: loading from cache …")
