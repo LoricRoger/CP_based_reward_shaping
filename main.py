@@ -33,6 +33,7 @@ def main():
                         ))
     parser.add_argument('--episodes', type=int, default=500, help="Training episodes for Q-learning")
     parser.add_argument('--seed', type=int, default=None, help="Random seed to override config.seed_value")
+    parser.add_argument('--results-dir', type=str, default=None, help="Directory to store result logs")
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -77,7 +78,7 @@ def main():
         print(f"ERROR: Optimal policy data missing for '{instance_id}'.")
         return
 
-    results_dir = "results"
+    results_dir = args.results_dir if args.results_dir is not None else "results"
     plots_dir = "plots"
     os.makedirs(results_dir, exist_ok=True)
     os.makedirs(plots_dir, exist_ok=True)
