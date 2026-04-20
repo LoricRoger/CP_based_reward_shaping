@@ -33,6 +33,9 @@ def main():
                         ))
     parser.add_argument('--episodes', type=int, default=500, help="Training episodes for Q-learning")
     parser.add_argument('--seed', type=int, default=None, help="Random seed to override config.seed_value")
+    parser.add_argument('--port', type=int, default=12345, help="TCP port for the Java CP server (default: 12345)")
+    parser.add_argument('--no-compile', action='store_true',
+                        help="Skip 'mvn compile' step (use when Java is already compiled)")
     parser.add_argument('--results-dir', type=str, default=None, help="Directory to store result logs")
     args = parser.parse_args()
 
@@ -131,23 +134,36 @@ def main():
             env.close()
             return
 
-        mvn_exec = 'mvn.cmd' if os.name == 'nt' else 'mvn'
-        base_cmd_args = [mvn_exec, '-f', pom, 'compile', 'exec:java', '-Dexec.cleanupDaemonThreads=false']
-
-        # La classe principale est désormais TOUJOURS la même
-        main_class_arg = '-Dexec.mainClass=minicpbp.examples.FrozenLakeCPService'
-
-        # Choose Java mode and pass optional budget argument
-        budget_suffix = f" {args.budget}" if args.budget > 0 else ""
+        # Determine Java mode; args passés à Java : "mode budget port"
         if args.agent == 'cp_greedy' or args.shaping == 'cp-ms':
-            java_mode = f"MS{budget_suffix}"
+            mode_str = "MS"
         elif args.shaping == 'cp-etr':
-            java_mode = f"ETR{budget_suffix}"
+            mode_str = "ETR"
         else:
             print(f"ERROR: Cannot determine Java mode for agent='{args.agent}', shaping='{args.shaping}'.")
             env.close()
             return
-        cmd = base_cmd_args + [main_class_arg, f'-Dexec.args={java_mode}']
+        java_args_list = [mode_str, str(args.budget), str(args.port)]
+
+        if args.no_compile:
+            # Lancer Java directement (sans Maven) pour éviter les conflits de JVM partagée
+            # en mode parallèle. Le classpath est généré une fois par mvn dependency:build-classpath.
+            cp_file = os.path.join(cp_dir, 'target', 'java_classpath.txt')
+            if not os.path.isfile(cp_file):
+                print(f"ERROR: Classpath file not found: {cp_file}. Run pre-compile first.")
+                env.close()
+                return
+            with open(cp_file) as f:
+                dep_cp = f.read().strip()
+            classes_dir = os.path.join(cp_dir, 'target', 'classes')
+            full_cp = classes_dir + os.pathsep + dep_cp
+            cmd = ['java', '-cp', full_cp, 'minicpbp.examples.FrozenLakeCPService'] + java_args_list
+        else:
+            mvn_exec = 'mvn.cmd' if os.name == 'nt' else 'mvn'
+            main_class_arg = '-Dexec.mainClass=minicpbp.examples.FrozenLakeCPService'
+            exec_args = ' '.join(java_args_list)
+            cmd = [mvn_exec, '-f', pom, 'compile', 'exec:java', '-Dexec.cleanupDaemonThreads=false',
+                   main_class_arg, f'-Dexec.args={exec_args}']
 
         print(f"Starting Java server for CP agent: {' '.join(cmd)}")
 
@@ -163,7 +179,7 @@ def main():
                 env.close()
                 return
             print("Java server presumed started.")
-            cp_client = q_learning_cp.CPRewardClient()
+            cp_client = q_learning_cp.CPRewardClient(port=args.port)
             if not cp_client.connect():
                 print("ERROR: Failed to connect to CP server.")
                 _print_logs(java_stderr_log, java_stdout_log)
