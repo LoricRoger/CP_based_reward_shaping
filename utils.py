@@ -1,10 +1,12 @@
 # FL/utils.py
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 import json
 import re
 import config
+from tqdm import tqdm
 
 # Seeds are set once in main.py after parsing --seed. Do not re-seed here
 # (module-level seeding would override the CLI seed).
@@ -95,7 +97,7 @@ def evaluate_agent(env, q_table, max_steps, eval_episodes=config.EVAL_EPISODES):
         print("WARN: eval_episodes is zero or negative.")
         return 0.0, 0.0, 0.0, 0.0, 0.0
 
-    for episode_idx in range(eval_episodes):
+    for episode_idx in tqdm(range(eval_episodes)):
         state, info = env.reset()
         episode_undiscounted_return = 0.0
         episode_discounted_return = 0.0

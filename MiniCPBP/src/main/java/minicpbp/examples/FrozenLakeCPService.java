@@ -415,7 +415,7 @@ public class FrozenLakeCPService {
             } else {
                 etrValue = Math.max(0.0, Math.min(1.0, etrValue));
             }
-
+            System.err.println("ETR value pour state : " + currentEpisodeStep +" = " + etrValue);
             return "ETR_VALUE " + etrValue;
 
         } catch (InconsistencyException e) {
