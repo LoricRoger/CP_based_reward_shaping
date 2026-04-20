@@ -11,6 +11,7 @@ Options:
     --instances ID...   Instance IDs to benchmark         (default: 4s 4medium 4hard 8s 8medium 8hard)
     --methods M...      Methods to benchmark              (default: all five)
     --output-dir DIR    Directory for all outputs         (default: ./experiment_results)
+    --workers N         Parallel workers for non-Java methods (default: 1)
     --force             Re-run even if cache entry exists
     --plots-only        Skip running, only regenerate plots/table from cached data
 
@@ -32,10 +33,13 @@ import argparse
 import csv
 import json
 import shutil
+import time
 import subprocess
 import sys
 import tempfile
+import threading
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import matplotlib
@@ -68,6 +72,9 @@ METHOD_ARGS: dict[str, tuple[str, str | None]] = {
 
 # Methods that include a Q-learning training phase
 Q_METHODS = {"q-none", "q-classic", "q-cp-ms", "q-cp-etr"}
+
+# Methods that require a Java CP server (must run sequentially for now)
+JAVA_METHODS = {"q-cp-ms", "q-cp-etr", "cp-greedy"}
 
 # Methods displayed as horizontal lines (no training curve)
 HLINE_METHODS = {"cp-greedy", "optimal"}
@@ -222,14 +229,64 @@ def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str) -> 
 # Run all experiments
 # ---------------------------------------------------------------------------
 
-def run_all(instances, methods, seeds, episodes, output_dir, force) -> dict:
+def _run_one(inst: str, meth: str, seed: int, episodes: int,
+             output_dir: Path, tag: str, print_lock: threading.Lock) -> tuple[tuple, dict | None]:
+    """Execute a single (inst, meth, seed) run and return ((inst, meth, seed), entry)."""
+    tmp_dir = tempfile.mkdtemp(prefix="fl_run_")
+    try:
+        cmd = _build_cmd(meth, inst, episodes, seed, tmp_dir)
+        result = subprocess.run(
+            cmd, cwd=str(ROOT), capture_output=True, text=True, timeout=7200,
+        )
+        if result.returncode != 0:
+            lines = (result.stdout + result.stderr).strip().splitlines()[-20:]
+            with print_lock:
+                print(f"  [ERROR] {tag} — exit code {result.returncode}")
+                for line in lines:
+                    print(f"    {line}")
+            return (inst, meth, seed), None
+
+        result_files = list(Path(tmp_dir).rglob("*_log.json"))
+        if not result_files:
+            with print_lock:
+                print(f"  [WARN]  {tag} — run OK but no result log found")
+            return (inst, meth, seed), None
+
+        with open(result_files[0]) as f:
+            raw = json.load(f)
+
+        entry = _extract_entry(raw)
+        if entry is None:
+            with print_lock:
+                print(f"  [WARN]  {tag} — result log has no evaluation_log")
+            return (inst, meth, seed), None
+
+        _save_cache(output_dir, inst, meth, seed, episodes, entry)
+        with print_lock:
+            print(f"  [OK]    {tag}")
+        return (inst, meth, seed), entry
+
+    except subprocess.TimeoutExpired:
+        with print_lock:
+            print(f"  [ERROR] {tag} — timeout (>7200 s)")
+        return (inst, meth, seed), None
+    except Exception as exc:
+        with print_lock:
+            print(f"  [ERROR] {tag} — {exc}")
+            traceback.print_exc()
+        return (inst, meth, seed), None
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def run_all(instances, methods, seeds, episodes, output_dir, force,
+            workers: int = 1) -> dict:
     """
     Launch main.py for each (instance, method, seed) not already cached.
-    After each successful run, read result.json from results/ and write a
-    compact cache entry to experiment_results/cache/.
 
-    Returns:
-        data[(inst, meth, seed)] = cache entry dict | None
+    workers > 1 enables parallel execution, but only for non-Java methods
+    (q-none, q-classic, optimal). Java methods (q-cp-ms, q-cp-etr, cp-greedy)
+    always run sequentially to avoid port conflicts.
     """
     runs = [(inst, meth, seed)
             for inst in instances
@@ -237,81 +294,75 @@ def run_all(instances, methods, seeds, episodes, output_dir, force) -> dict:
             for seed in seeds]
 
     total = len(runs)
-    skipped = 0
+    w = len(str(total))
     data: dict[tuple, dict | None] = {}
+    print_lock = threading.Lock()
+
+    start_time = time.time()
 
     print(f"\n{'=' * 60}")
-    print(f"  Experiment  |  {total} runs  |  episodes={episodes}")
+    print(f"  Experiment  |  {total} runs  |  episodes={episodes}  |  workers={workers}")
     print(f"{'=' * 60}\n")
 
+    # Separate skippable runs and pending runs
+    skipped = 0
+    pending = []
     for idx, (inst, meth, seed) in enumerate(runs, 1):
-        w = len(str(total))
-        tag = f"[{idx:{w}}/{total}] {inst:<10} {meth:<12} seed={seed}"
-
+        tag = f"[{idx:{w}}/{total}] {inst:<10} {meth:<16} seed={seed}"
         cached = _load_cache(output_dir, inst, meth, seed, episodes)
         if cached is not None and not force:
             print(f"{tag}  --> SKIP  (cached)")
             data[(inst, meth, seed)] = cached
             skipped += 1
-            continue
+        else:
+            pending.append((inst, meth, seed, tag))
 
-        print(f"{tag}  --> running ...", flush=True)
-        tmp_dir = tempfile.mkdtemp(prefix="fl_run_")
-        try:
-            cmd = _build_cmd(meth, inst, episodes, seed, tmp_dir)
-            result = subprocess.run(
-                cmd,
-                cwd=str(ROOT),
-                capture_output=True,
-                text=True,
-                timeout=7200,
-            )
-            if result.returncode != 0:
-                print(f"  [ERROR] exit code {result.returncode}")
-                for line in (result.stdout + result.stderr).strip().splitlines()[-20:]:
-                    print(f"    {line}")
-                data[(inst, meth, seed)] = None
-                continue
+    # Split pending into parallelisable (no Java) and sequential (Java)
+    base_of = {(inst, meth, seed): _parse_method(meth)[0]
+               for inst, meth, seed, _ in pending}
+    parallel_runs = [(inst, meth, seed, tag) for inst, meth, seed, tag in pending
+                     if base_of[(inst, meth, seed)] not in JAVA_METHODS]
+    sequential_runs = [(inst, meth, seed, tag) for inst, meth, seed, tag in pending
+                       if base_of[(inst, meth, seed)] in JAVA_METHODS]
 
-            # Find *_log.json inside tmp_dir
-            result_files = list(Path(tmp_dir).rglob("*_log.json"))
-            if not result_files:
-                print(f"  [WARN]  Run OK but no result log found in tmp dir")
-                data[(inst, meth, seed)] = None
-                continue
-
-            try:
-                with open(result_files[0]) as f:
-                    raw = json.load(f)
-            except Exception as e:
-                print(f"  [WARN]  Could not read result log: {e}")
-                data[(inst, meth, seed)] = None
-                continue
-
-            entry = _extract_entry(raw)
-            if entry is None:
-                print(f"  [WARN]  Result log has no evaluation_log")
-                data[(inst, meth, seed)] = None
-                continue
-
-            _save_cache(output_dir, inst, meth, seed, episodes, entry)
-            print(f"  [OK]    cached")
+    if parallel_runs and workers > 1:
+        print(f"  [parallel] {len(parallel_runs)} non-Java runs with {workers} workers")
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = {
+                executor.submit(_run_one, inst, meth, seed, episodes,
+                                output_dir, tag, print_lock): (inst, meth, seed)
+                for inst, meth, seed, tag in parallel_runs
+            }
+            for future in as_completed(futures):
+                try:
+                    key, entry = future.result()
+                    data[key] = entry
+                except Exception as exc:
+                    key = futures[future]
+                    with print_lock:
+                        print(f"  [ERROR] {key}: {exc}")
+                    data[key] = None
+    else:
+        for inst, meth, seed, tag in parallel_runs:
+            print(f"{tag}  --> running ...", flush=True)
+            _, entry = _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock)
             data[(inst, meth, seed)] = entry
 
-        except subprocess.TimeoutExpired:
-            print(f"  [ERROR] timeout (>7200 s)")
-            data[(inst, meth, seed)] = None
-        except Exception as exc:
-            print(f"  [ERROR] {exc}")
-            traceback.print_exc()
-            data[(inst, meth, seed)] = None
-        finally:
-            shutil.rmtree(tmp_dir, ignore_errors=True)
+    if sequential_runs:
+        if workers > 1:
+            print(f"  [sequential] {len(sequential_runs)} Java runs (toujours séquentiel)")
+        for inst, meth, seed, tag in sequential_runs:
+            print(f"{tag}  --> running ...", flush=True)
+            _, entry = _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock)
+            data[(inst, meth, seed)] = entry
 
+    elapsed = time.time() - start_time
+    minutes, seconds = divmod(int(elapsed), 60)
     valid_entries = sum(1 for v in data.values() if v is not None)
     succeeded = valid_entries - skipped
     failed = total - valid_entries
-    print(f"\nDone: {succeeded} succeeded, {skipped} skipped, {failed} failed\n")
+    print(f"\nDone: {succeeded} succeeded, {skipped} skipped, {failed} failed  "
+          f"| Durée totale : {minutes}m{seconds:02d}s\n")
     return data
 
 
@@ -506,6 +557,9 @@ def parse_args() -> argparse.Namespace:
                         ))
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT,
                         help=f"Root output directory (default: {DEFAULT_OUTPUT})")
+    parser.add_argument("--workers", type=int, default=1,
+                        help="Parallel workers for non-Java methods (default: 1 = sequential). "
+                             "Java methods (q-cp-ms, q-cp-etr, cp-greedy) always run sequentially.")
     parser.add_argument("--force", action="store_true",
                         help="Re-run even if a cache entry already exists")
     parser.add_argument("--plots-only", action="store_true",
@@ -533,6 +587,7 @@ def main() -> None:
             episodes=args.episodes,
             output_dir=args.output_dir,
             force=args.force,
+            workers=args.workers,
         )
     else:
         print("--plots-only: loading from cache …")
