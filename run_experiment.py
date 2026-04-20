@@ -51,7 +51,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent
 
 DEFAULT_INSTANCES = ["4s", "4medium", "4hard", "8s", "8medium", "8hard"]
-DEFAULT_METHODS = ["q-none", "q-classic", "q-cp-ms", "q-cp-etr", "cp-greedy"]
+DEFAULT_METHODS = ["q-none", "q-classic", "q-cp-ms", "q-cp-etr", "cp-greedy", "optimal"]
 DEFAULT_SEEDS = 5
 DEFAULT_EPISODES = 2000
 DEFAULT_OUTPUT = ROOT / "experiment_results"
@@ -63,10 +63,14 @@ METHOD_ARGS: dict[str, tuple[str, str | None]] = {
     "q-cp-ms": ("q", "cp-ms"),
     "q-cp-etr": ("q", "cp-etr"),
     "cp-greedy": ("cp_greedy", None),
+    "optimal": ("optimal", None),
 }
 
 # Methods that include a Q-learning training phase
 Q_METHODS = {"q-none", "q-classic", "q-cp-ms", "q-cp-etr"}
+
+# Methods displayed as horizontal lines (no training curve)
+HLINE_METHODS = {"cp-greedy", "optimal"}
 
 # Human-readable labels for plots and table
 METHOD_LABELS = {
@@ -75,6 +79,7 @@ METHOD_LABELS = {
     "q-cp-ms": "Q-CP-MS",
     "q-cp-etr": "Q-CP-ETR",
     "cp-greedy": "CP-MS Greedy",
+    "optimal": "Optimal",
 }
 
 # Consistent colour palette
@@ -84,6 +89,7 @@ METHOD_COLORS = {
     "q-cp-ms": "#2ecc71",
     "q-cp-etr": "#9b59b6",
     "cp-greedy": "#f39c12",
+    "optimal": "#1abc9c",
 }
 
 # Extra colours for budget variants
@@ -107,6 +113,8 @@ def _parse_method(raw: str) -> tuple[str, int, str | None]:
         raise ValueError(
             f"Unknown base method '{base}'. Valid: {sorted(METHOD_ARGS)}"
         )
+    if base == "optimal":
+        return base, 0, None
     if len(parts) == 1:
         return base, 0, None
     if len(parts) == 3:
@@ -196,9 +204,11 @@ def _build_cmd(meth: str, inst: str, episodes: int, seed: int, tmp_dir: str) -> 
         "--instance", inst,
         "--agent", agent,
         "--seed", str(seed),
-        "--episodes", str(episodes),
         "--results-dir", tmp_dir,
     ]
+    # optimal ne prend pas --episodes (il utilise config.EVAL_EPISODES)
+    if base != "optimal":
+        cmd += ["--episodes", str(episodes)]
     if shaping is not None:
         cmd += ["--shaping", shaping]
     if budget:
@@ -415,7 +425,7 @@ def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path
             label = _method_label(meth)
             base, _, _ = _parse_method(meth)
 
-            if base == "cp-greedy":
+            if base in HLINE_METHODS:
                 srs = [data[(inst, meth, s)]["final_sr"]
                        for s in seeds if data.get((inst, meth, s)) is not None]
                 if srs:
