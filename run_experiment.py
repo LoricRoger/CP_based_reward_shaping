@@ -33,6 +33,7 @@ import argparse
 import csv
 import json
 import shutil
+import time
 import subprocess
 import sys
 import tempfile
@@ -297,6 +298,8 @@ def run_all(instances, methods, seeds, episodes, output_dir, force,
     data: dict[tuple, dict | None] = {}
     print_lock = threading.Lock()
 
+    start_time = time.time()
+
     print(f"\n{'=' * 60}")
     print(f"  Experiment  |  {total} runs  |  episodes={episodes}  |  workers={workers}")
     print(f"{'=' * 60}\n")
@@ -353,10 +356,13 @@ def run_all(instances, methods, seeds, episodes, output_dir, force,
             _, entry = _run_one(inst, meth, seed, episodes, output_dir, tag, print_lock)
             data[(inst, meth, seed)] = entry
 
+    elapsed = time.time() - start_time
+    minutes, seconds = divmod(int(elapsed), 60)
     valid_entries = sum(1 for v in data.values() if v is not None)
     succeeded = valid_entries - skipped
     failed = total - valid_entries
-    print(f"\nDone: {succeeded} succeeded, {skipped} skipped, {failed} failed\n")
+    print(f"\nDone: {succeeded} succeeded, {skipped} skipped, {failed} failed  "
+          f"| Durée totale : {minutes}m{seconds:02d}s\n")
     return data
 
 
