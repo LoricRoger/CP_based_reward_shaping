@@ -13,11 +13,13 @@ No-slip strategy variants (--noslip-strategy):
 import socket
 import random
 import time
+import logging
 import numpy as np
 import config
 import utils
 import datetime
 import os
+from tqdm import tqdm
 
 # ---------------------------------------------------------------------------
 # CP server communication constants
@@ -309,19 +311,51 @@ def make_noslip_strategy(name, budget_wrapper, total_episodes):
 
 
 # ---------------------------------------------------------------------------
+# Verbose helpers
+# ---------------------------------------------------------------------------
+
+def _log(msg: str, verbose: int, min_level: int = 1, logger: logging.Logger = None):
+    if verbose >= min_level:
+        tqdm.write(msg)
+    if logger:
+        logger.info(msg)
+
+
+def _maybe_save_qtable(q_table, shaping_type, noslip_strategy_name, instance_id,
+                       total_episodes, episode, verbose: int, run_dir: str):
+    """Sauvegarde la Q-table CSV uniquement si verbose >= 2."""
+    if verbose < 2:
+        return
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    qtables_dir = os.path.join(run_dir, "qtables")
+    os.makedirs(qtables_dir, exist_ok=True)
+    q_filename = os.path.join(
+        qtables_dir,
+        f"q_{shaping_type}_{noslip_strategy_name}_{instance_id}_{total_episodes}eps_{episode}eval_{timestamp}.csv"
+    )
+    utils.save_q_table_csv(q_table, q_filename)
+
+
+# ---------------------------------------------------------------------------
 # Training function
 # ---------------------------------------------------------------------------
 
 def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, shaping_type, size, holes, goal,
-                                     instance_id, noslip_strategy_name='fail'):
+                                     instance_id, noslip_strategy_name='fail',
+                                     verbose: int = 0, run_dir: str = "results",
+                                     logger: logging.Logger = None):
     """
     Trains a Q-learning agent with CP-based reward shaping (ETR or MS).
 
     Args:
         noslip_strategy_name: one of 'fail', 'full-budget'.
                               Only used when action_size == 8 (budget mode).
+        verbose: 0=silent, 1=tqdm+log file, 2=+Q-table CSVs
+        run_dir: base directory for this run's outputs
+        logger:  file logger (None if verbose=0)
     """
-    print(f"Starting CP shaped training ({shaping_type}): {total_episodes} episodes")
+    _log(f"Starting CP shaped training ({shaping_type}): {total_episodes} episodes",
+         verbose, logger=logger)
     state_size = env.observation_space.n
     action_size = env.action_space.n
 
@@ -331,7 +365,8 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
     elif shaping_type == 'cp-etr':
         q_init_val = config.Q_INIT_VALUE_CP_ETR
     else:
-        print(f"Warning: Unknown CP shaping type '{shaping_type}'. Defaulting Q_init to 0.0.")
+        _log(f"Warning: Unknown CP shaping type '{shaping_type}'. Defaulting Q_init to 0.0.",
+             verbose, logger=logger)
         q_init_val = 0.0
     q_table = np.full((state_size, action_size), q_init_val)
 
@@ -341,22 +376,25 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
     if budget_wrapper is not None:
         strategy = make_noslip_strategy(noslip_strategy_name, budget_wrapper, total_episodes)
         strategy.init_q_noslip(q_table)
-        print(f"  No-slip strategy: {strategy.describe()}")
+        _log(f"  No-slip strategy: {strategy.describe()}", verbose, logger=logger)
     else:
-        print(f"  No-slip strategy: N/A (4-action mode)")
+        _log("  No-slip strategy: N/A (4-action mode)", verbose, logger=logger)
 
     epsilon, lr, gamma_discount, eps_min = _get_hyperparameters()
     eps_decay = (eps_min / epsilon) ** (1.0 / total_episodes)
     episode_log, evaluation_log = [], []
 
     if not cp_client or not cp_client.is_connected:
-        print("ERROR: CP client not connected. Aborting training.")
+        tqdm.write("ERROR: CP client not connected. Aborting training.")
         return q_table, episode_log, evaluation_log
 
     total_steps_processed = 0
     global_noslip_by_state = {}
 
-    for episode in range(total_episodes):
+    episode_iter = tqdm(range(total_episodes), desc="Training", leave=False, dynamic_ncols=True) \
+        if verbose >= 1 else range(total_episodes)
+
+    for episode in episode_iter:
         # Update budget for this episode
         if strategy is not None:
             strategy.update(episode)
@@ -364,7 +402,7 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
         state, _ = env.reset()
         reset_response = cp_client.send_receive("RESET")
         if not reset_response.startswith("OK RESET"):
-            print(f"ERROR: CP Server RESET failed: {reset_response}. Aborting.")
+            tqdm.write(f"ERROR: CP Server RESET failed: {reset_response}. Aborting.")
             break
 
         # Initial ETR query (ETR mode only)
@@ -372,7 +410,8 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
         if shaping_type == 'cp-etr':
             etr_before = cp_client.query_etr()
             if etr_before is None:
-                print(f"WARN: Failed initial ETR query Ep {episode + 1}. Setting to 0.")
+                _log(f"WARN: Failed initial ETR query Ep {episode + 1}. Setting to 0.",
+                     verbose, logger=logger)
                 etr_before = 0.0
 
         episode_steps = 0
@@ -396,8 +435,8 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                     if marginal is not None:
                         current_step_marginals[a_query] = marginal
                     else:
-                        print(f"WARN: Failed marginal query Ep {episode + 1}/St {step_idx} "
-                              f"S{current_state}/A{a_query}. Using 0.")
+                        _log(f"WARN: Failed marginal query Ep {episode + 1}/St {step_idx} "
+                             f"S{current_state}/A{a_query}. Using 0.", verbose, logger=logger)
                         current_step_marginals[a_query] = 0.0
 
             # Compute budget state
@@ -406,7 +445,7 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
 
             # Action selection (delegated to strategy)
             if not (0 <= state < state_size):
-                print(f"ERROR: Invalid state {state} Ep {episode + 1}/St {step_idx}. Stopping.")
+                tqdm.write(f"ERROR: Invalid state {state} Ep {episode + 1}/St {step_idx}. Stopping.")
                 break
 
             if strategy is not None:
@@ -426,13 +465,14 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                 next_state, env_reward, terminated, truncated, _ = env.step(env_action)
                 done = terminated or truncated
             except Exception as err:
-                print(f"ERROR: env.step exception: {err}. Stopping episode.")
+                tqdm.write(f"ERROR: env.step exception: {err}. Stopping episode.")
                 break
 
             # Inform CP server of the actual action + next state
             step_ok = cp_client.send_step(step_idx, env_action, next_state)
             if not step_ok:
-                print(f"WARN: CP Server STEP {step_idx} failed. CP state may be inconsistent.")
+                _log(f"WARN: CP Server STEP {step_idx} failed. CP state may be inconsistent.",
+                     verbose, logger=logger)
                 break
 
             # Per-step no-slip penalty (strategy-dependent)
@@ -446,7 +486,8 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
             elif shaping_type == 'cp-etr':
                 etr_after = cp_client.query_etr()
                 if etr_after is None or etr_before is None:
-                    print(f"WARN: Failed ETR query after step {step_idx}. Using env_reward.")
+                    _log(f"WARN: Failed ETR query after step {step_idx}. Using env_reward.",
+                         verbose, logger=logger)
                     reward_used_for_update = env_reward + noslip_penalty
                 else:
                     cp_shaping = etr_after - etr_before
@@ -461,7 +502,7 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
             shaped_reward_sum += reward_used_for_update
 
             if not (0 <= next_state < state_size):
-                print(f"ERROR: Invalid next_state {next_state}. Stopping episode.")
+                tqdm.write(f"ERROR: Invalid next_state {next_state}. Stopping episode.")
                 break
 
             # Bellman update
@@ -494,49 +535,44 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                 'avg_steps_success': avg_ss, 'avg_steps_failure': avg_sf
             })
 
-            print(f"\n--- Eval Ep {episode + 1}/{total_episodes} [{shaping_type}] ---")
-            print(f"  Success Rate:              {sr:.2%}")
-            print(f"  Avg Return (Undiscounted): {ar_undisc:.4f}")
-            print(f"  Avg Discounted Return:     {ar_disc:.4f}")
-            print(f"  Avg Steps (Succ/Fail):     {avg_ss:.1f} / {avg_sf:.1f}")
-            print(f"  Epsilon:                   {epsilon:.4f}")
+            _log(f"\n--- Eval Ep {episode + 1}/{total_episodes} [{shaping_type}] ---", verbose, logger=logger)
+            _log(f"  Success Rate:              {sr:.2%}", verbose, logger=logger)
+            _log(f"  Avg Return (Undiscounted): {ar_undisc:.4f}", verbose, logger=logger)
+            _log(f"  Avg Discounted Return:     {ar_disc:.4f}", verbose, logger=logger)
+            _log(f"  Avg Steps (Succ/Fail):     {avg_ss:.1f} / {avg_sf:.1f}", verbose, logger=logger)
+            _log(f"  Epsilon:                   {epsilon:.4f}", verbose, logger=logger)
 
             if strategy is not None:
                 current_stage_budget = strategy.wrapper.initial_budget
-                print(f"  Budget (episode initial):  {current_stage_budget}/{strategy.max_budget}")
+                _log(f"  Budget (episode initial):  {current_stage_budget}/{strategy.max_budget}",
+                     verbose, logger=logger)
                 top5 = sorted(global_noslip_by_state.items(), key=lambda x: -x[1])[:5]
-                print(f"  No-slip top-5 états:       {top5}")
+                _log(f"  No-slip top-5 états:       {top5}", verbose, logger=logger)
                 recent = episode_log[-config.EVAL_FREQUENCY:]
                 succ_ns = [e['noslip_used'] for e in recent if e['success'] == 1]
                 fail_ns = [e['noslip_used'] for e in recent if e['success'] == 0]
-                print(f"  No-slip moy. (succès): {np.mean(succ_ns):.2f}" if succ_ns
-                      else "  No-slip moy. (succès): N/A")
-                print(f"  No-slip moy. (échec):  {np.mean(fail_ns):.2f}" if fail_ns
-                      else "  No-slip moy. (échec):  N/A")
+                _log(f"  No-slip moy. (succès): {np.mean(succ_ns):.2f}" if succ_ns
+                     else "  No-slip moy. (succès): N/A", verbose, logger=logger)
+                _log(f"  No-slip moy. (échec):  {np.mean(fail_ns):.2f}" if fail_ns
+                     else "  No-slip moy. (échec):  N/A", verbose, logger=logger)
 
-                # Extra eval with full budget (only if current stage < max)
                 if current_stage_budget < strategy.max_budget:
                     sr_full, _, ar_disc_full, _, _ = strategy.eval_with_full_budget(
                         env, q_table, max_steps, config.EVAL_EPISODES)
-                    print(f"  [Budget max={strategy.max_budget}] "
-                          f"SR={sr_full:.2%} | DiscReturn={ar_disc_full:.4f}")
+                    _log(f"  [Budget max={strategy.max_budget}] "
+                         f"SR={sr_full:.2%} | DiscReturn={ar_disc_full:.4f}", verbose, logger=logger)
 
-            print("  Greedy Policy:")
+            _log("  Greedy Policy:", verbose, logger=logger)
             policy_grid = utils.get_policy_grid_from_q_table(q_table, size, holes, goal)
             for row_str in (policy_grid or ["(Could not generate)"]):
-                print(f"    {row_str}")
-            print("-" * (size + 5))
+                _log(f"    {row_str}", verbose, logger=logger)
+            _log("-" * (size + 5), verbose, logger=logger)
+            _maybe_save_qtable(q_table, shaping_type, noslip_strategy_name, instance_id,
+                               total_episodes, episode + 1, verbose, run_dir)
 
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            q_filename = os.path.join(
-                "results",
-                f"q_{shaping_type}_{noslip_strategy_name}_{instance_id}_{total_episodes}eps_{episode + 1}eval_{timestamp}.csv"
-            )
-            utils.save_q_table_csv(q_table, q_filename)
-
-    print(f"\nTraining complete ({shaping_type}, strategy={noslip_strategy_name}). "
-          f"Total steps: {total_steps_processed}")
+    _log(f"\nTraining complete ({shaping_type}, strategy={noslip_strategy_name}). "
+         f"Total steps: {total_steps_processed}", verbose, logger=logger)
     if action_size == 8:
         top10 = sorted(global_noslip_by_state.items(), key=lambda x: -x[1])[:10]
-        print(f"No-slip global top-10: {top10}")
+        _log(f"No-slip global top-10: {top10}", verbose, logger=logger)
     return q_table, episode_log, evaluation_log

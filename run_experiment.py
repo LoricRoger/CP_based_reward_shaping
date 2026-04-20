@@ -262,7 +262,7 @@ def _run_one(inst: str, meth: str, seed: int, episodes: int,
             msg = f"  [ERROR] {tag} — exit code {result.returncode}\n" + "\n".join(f"    {l}" for l in lines)
             return _done(msg, None)
 
-        result_files = list(Path(tmp_dir).rglob("*_log.json"))
+        result_files = list(Path(tmp_dir).rglob("result.json")) or list(Path(tmp_dir).rglob("*_log.json"))
         if not result_files:
             return _done(f"  [WARN]  {tag} — run OK but no result log found", None)
 
