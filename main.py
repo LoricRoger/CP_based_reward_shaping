@@ -88,6 +88,8 @@ def main():
         agent_log_name = f"q_{args.shaping}"
         if args.budget > 0:
             agent_log_name += f"_b{args.budget}_{args.noslip_strategy}"
+    elif args.agent == 'cp_greedy' and args.budget > 0:
+        agent_log_name = f"cp_greedy_b{args.budget}"
     log_base_name = f"{agent_log_name}_{instance_id}_{args.episodes if args.agent == 'q' else config.EVAL_EPISODES}eps_seed{current_seed}_{timestamp}"
     log_file = os.path.join(results_dir, f"{log_base_name}_log.json")
     java_stdout_log = os.path.join(results_dir, f"{log_base_name}_java_stdout.log")
@@ -186,7 +188,7 @@ def main():
         if args.agent == 'cp_greedy':
             final_evaluations = heuristic_agents.run_cp_ms_greedy_agent(env, cp_client, config.EVAL_EPISODES,
                                                                         max_steps_config, size, env.action_space.n,
-                                                                        instance_id)
+                                                                        instance_id, budget=args.budget)
             utils.save_results_log({'episode_log': [], 'evaluation_log': final_evaluations}, log_file)
             _cleanup_cp(java_process, cp_client)
 
@@ -224,12 +226,17 @@ def main():
 
 def _run_q_learning_session(env, train_fn, args, max_steps_config, log_file, java_process=None, cp_client=None,
                             java_stdout_log=None, java_stderr_log=None, size=None, holes=None, goal=None):
-    q_table, episodes, evaluations = None, [], []
+    q_table, episodes, evaluations, aug_mapper = None, [], [], None
     start_time = time.time()
     try:
         print(
             f"Starting Q-learning training for {args.episodes} episodes (Agent: {args.agent}, Shaping: {args.shaping})")
-        q_table, episodes, evaluations = train_fn(env, args.episodes, max_steps_config)
+        result = train_fn(env, args.episodes, max_steps_config)
+        # CP training returns (q_table, episodes, evaluations, aug_mapper); standard returns (q_table, episodes, evaluations)
+        if len(result) == 4:
+            q_table, episodes, evaluations, aug_mapper = result
+        else:
+            q_table, episodes, evaluations = result
     except Exception as e:
         print(f"ERROR during training: {e}")
         import traceback
@@ -260,7 +267,8 @@ def _run_q_learning_session(env, train_fn, args, max_steps_config, log_file, jav
                 utils.visualize_policy(
                     q_table, size, holes, goal,
                     title=f"Politique finale — {policy_label} ({args.instance})",
-                    save_path=os.path.join("plots", f"policy__{log_stem}.png")
+                    save_path=os.path.join("plots", f"policy__{log_stem}.png"),
+                    aug_mapper=aug_mapper,
                 )
         except Exception as e:
             print(f"Error plotting results: {e}")

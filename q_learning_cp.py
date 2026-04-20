@@ -144,6 +144,43 @@ class CPRewardClient:
 
 
 # ---------------------------------------------------------------------------
+# AugmentedStateMapper — (position, budget_remaining) → flat index
+# ---------------------------------------------------------------------------
+
+class AugmentedStateMapper:
+    """
+    Maps (position, budget_remaining) pairs to a flat Q-table row index.
+
+    Encoding: aug_state = position * (max_budget + 1) + budget_remaining
+
+    This keeps the Q-table as a standard np.ndarray with shape
+    (state_size * (max_budget + 1), action_size).
+    """
+
+    def __init__(self, state_size, max_budget):
+        self.state_size = state_size
+        self.max_budget = max_budget
+        self.budget_levels = max_budget + 1  # 0 .. max_budget inclusive
+        self.total_states = state_size * self.budget_levels
+
+    def encode(self, position, budget_remaining):
+        budget_clamped = max(0, min(budget_remaining, self.max_budget))
+        return position * self.budget_levels + budget_clamped
+
+    def decode(self, aug_state):
+        position = aug_state // self.budget_levels
+        budget_remaining = aug_state % self.budget_levels
+        return position, budget_remaining
+
+    def slice_for_budget(self, q_table, budget_remaining):
+        """Returns the q_table rows corresponding to a specific budget level."""
+        budget_clamped = max(0, min(budget_remaining, self.max_budget))
+        indices = [pos * self.budget_levels + budget_clamped
+                   for pos in range(self.state_size)]
+        return q_table[indices]
+
+
+# ---------------------------------------------------------------------------
 # Helper: walk wrapper chain to find FrozenLakeExtendedActions
 # ---------------------------------------------------------------------------
 
@@ -186,7 +223,7 @@ class NoslipStrategy:
 
     # -- Per-episode budget ---------------------------------------------------
 
-    def update(self, episode):
+    def update(self, episode, q_table=None, aug_mapper=None):
         """Called at the start of each episode to set initial_budget."""
         self.wrapper.initial_budget = self.max_budget  # default: full budget always
 
@@ -222,11 +259,11 @@ class NoslipStrategy:
 
     # -- Evaluation with full budget ------------------------------------------
 
-    def eval_with_full_budget(self, env, q_table, max_steps, eval_episodes):
+    def eval_with_full_budget(self, env, q_table, max_steps, eval_episodes, aug_mapper=None):
         saved = self.wrapper.initial_budget
         self.wrapper.initial_budget = self.max_budget
         try:
-            return utils.evaluate_agent(env, q_table, max_steps, eval_episodes)
+            return utils.evaluate_agent(env, q_table, max_steps, eval_episodes, aug_mapper=aug_mapper)
         finally:
             self.wrapper.initial_budget = saved
 
@@ -251,13 +288,24 @@ class FailStrategy(NoslipStrategy):
     def __init__(self, budget_wrapper, total_episodes):
         super().__init__(budget_wrapper, total_episodes)
         self.stage_size = total_episodes // (self.max_budget + 1)
+        self._last_stage = 0
 
     def init_q_noslip(self, q_table):
         q_table[:, 4:] = config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP
 
-    def update(self, episode):
+    def update(self, episode, q_table=None, aug_mapper=None):
         stage = min(episode // self.stage_size, self.max_budget)
         self.wrapper.initial_budget = stage
+
+        # Transfer Q-values from level k to k+1 on stage transition
+        if stage > self._last_stage and q_table is not None and aug_mapper is not None:
+            for new_stage in range(self._last_stage + 1, stage + 1):
+                src_rows = aug_mapper.slice_for_budget(q_table, new_stage - 1)
+                for pos in range(aug_mapper.state_size):
+                    dst_idx = aug_mapper.encode(pos, new_stage)
+                    q_table[dst_idx] = src_rows[pos].copy()
+            print(f"  [Transfer] Q-values copiées du niveau {self._last_stage} → {stage}")
+        self._last_stage = stage
 
     def select_action(self, state, q_table, epsilon, env, budget_exhausted):
         if random.random() < epsilon:
@@ -271,7 +319,8 @@ class FailStrategy(NoslipStrategy):
     def describe(self):
         return (f"Strategy '{self.NAME}' | max_budget={self.max_budget} | "
                 f"curriculum: {self.max_budget + 1} stages × {self.stage_size} eps | "
-                f"Q_init_noslip={config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP}")
+                f"Q_init_noslip={config.Q_INIT_VALUE_CP_ETR_BUDGET_NOSLIP} | "
+                f"Q-transfer entre stages activé")
 
 
 # ---- Stratégie 2 : full-budget ----------------------------------------------
@@ -333,16 +382,21 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
     else:
         print(f"Warning: Unknown CP shaping type '{shaping_type}'. Defaulting Q_init to 0.0.")
         q_init_val = 0.0
-    q_table = np.full((state_size, action_size), q_init_val)
 
-    # Strategy setup (only in 8-action / budget mode)
+    # Strategy + augmented state setup (only in 8-action / budget mode)
     budget_wrapper = _get_budget_wrapper(env) if action_size == 8 else None
     strategy = None
+    aug_mapper = None
     if budget_wrapper is not None:
         strategy = make_noslip_strategy(noslip_strategy_name, budget_wrapper, total_episodes)
+        aug_mapper = AugmentedStateMapper(state_size, strategy.max_budget)
+        q_table = np.full((aug_mapper.total_states, action_size), q_init_val)
         strategy.init_q_noslip(q_table)
         print(f"  No-slip strategy: {strategy.describe()}")
+        print(f"  Augmented state space: {state_size} positions × {aug_mapper.budget_levels} budget levels "
+              f"= {aug_mapper.total_states} states")
     else:
+        q_table = np.full((state_size, action_size), q_init_val)
         print(f"  No-slip strategy: N/A (4-action mode)")
 
     epsilon, lr, gamma_discount, eps_min = _get_hyperparameters()
@@ -357,9 +411,9 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
     global_noslip_by_state = {}
 
     for episode in range(total_episodes):
-        # Update budget for this episode
+        # Update budget for this episode (pass q_table + aug_mapper for stage transfer)
         if strategy is not None:
-            strategy.update(episode)
+            strategy.update(episode, q_table=q_table, aug_mapper=aug_mapper)
 
         state, _ = env.reset()
         reset_response = cp_client.send_receive("RESET")
@@ -388,6 +442,13 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
             episode_steps += 1
             current_state = state
 
+            # Augmented state index for Q-table lookup
+            if aug_mapper is not None:
+                current_budget_val = budget_wrapper.budget
+                current_aug = aug_mapper.encode(current_state, current_budget_val)
+            else:
+                current_aug = current_state
+
             # MS mode: pre-fetch marginals for all actions
             current_step_marginals = {}
             if shaping_type == 'cp-ms':
@@ -404,16 +465,16 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
             current_budget = strategy.wrapper.budget if strategy is not None else None
             budget_exhausted = current_budget is not None and current_budget <= 0
 
-            # Action selection (delegated to strategy)
+            # Action selection (delegated to strategy, using augmented state)
             if not (0 <= state < state_size):
                 print(f"ERROR: Invalid state {state} Ep {episode + 1}/St {step_idx}. Stopping.")
                 break
 
             if strategy is not None:
-                action = strategy.select_action(state, q_table, epsilon, env, budget_exhausted)
+                action = strategy.select_action(current_aug, q_table, epsilon, env, budget_exhausted)
             else:
                 action = (env.action_space.sample() if random.random() < epsilon
-                          else int(np.argmax(q_table[state])))
+                          else int(np.argmax(q_table[current_aug])))
 
             env_action = action
 
@@ -464,10 +525,17 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                 print(f"ERROR: Invalid next_state {next_state}. Stopping episode.")
                 break
 
-            # Bellman update
-            best_next_q = np.max(q_table[next_state])
+            # Augmented next state index (budget already decremented by env.step if action >= 4)
+            if aug_mapper is not None:
+                next_budget_val = budget_wrapper.budget
+                next_aug = aug_mapper.encode(next_state, next_budget_val)
+            else:
+                next_aug = next_state
+
+            # Bellman update (on augmented states)
+            best_next_q = np.max(q_table[next_aug])
             td_target = reward_used_for_update + gamma_discount * best_next_q * (1 - int(done))
-            q_table[current_state, action] += lr * (td_target - q_table[current_state, action])
+            q_table[current_aug, action] += lr * (td_target - q_table[current_aug, action])
 
             env_reward_sum += env_reward
             state = next_state
@@ -487,7 +555,7 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
         # Periodic evaluation
         if (episode + 1) % config.EVAL_FREQUENCY == 0 or (episode + 1) == total_episodes:
             sr, ar_undisc, ar_disc, avg_ss, avg_sf = utils.evaluate_agent(
-                env, q_table, max_steps, config.EVAL_EPISODES)
+                env, q_table, max_steps, config.EVAL_EPISODES, aug_mapper=aug_mapper)
             evaluation_log.append({
                 'training_episode': episode + 1, 'eval_success_rate': sr,
                 'eval_avg_return': ar_undisc, 'eval_avg_discounted_return': ar_disc,
@@ -517,12 +585,13 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
                 # Extra eval with full budget (only if current stage < max)
                 if current_stage_budget < strategy.max_budget:
                     sr_full, _, ar_disc_full, _, _ = strategy.eval_with_full_budget(
-                        env, q_table, max_steps, config.EVAL_EPISODES)
+                        env, q_table, max_steps, config.EVAL_EPISODES, aug_mapper=aug_mapper)
                     print(f"  [Budget max={strategy.max_budget}] "
                           f"SR={sr_full:.2%} | DiscReturn={ar_disc_full:.4f}")
 
-            print("  Greedy Policy:")
-            policy_grid = utils.get_policy_grid_from_q_table(q_table, size, holes, goal)
+            print("  Greedy Policy (budget=max):")
+            policy_grid = utils.get_policy_grid_from_q_table(
+                q_table, size, holes, goal, aug_mapper=aug_mapper)
             for row_str in (policy_grid or ["(Could not generate)"]):
                 print(f"    {row_str}")
             print("-" * (size + 5))
@@ -539,4 +608,4 @@ def train_q_learning_with_cp_shaping(env, cp_client, total_episodes, max_steps, 
     if action_size == 8:
         top10 = sorted(global_noslip_by_state.items(), key=lambda x: -x[1])[:10]
         print(f"No-slip global top-10: {top10}")
-    return q_table, episode_log, evaluation_log
+    return q_table, episode_log, evaluation_log, aug_mapper
