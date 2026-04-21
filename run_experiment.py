@@ -162,7 +162,8 @@ def _method_color(raw: str, extra_iter) -> str:
 # ---------------------------------------------------------------------------
 
 def _cache_path(output_dir: Path, inst: str, meth: str, seed: int, episodes: int) -> Path:
-    return output_dir / "cache" / f"{inst}_{meth}_seed{seed}_{episodes}eps.json"
+    safe_meth = meth.replace(":", "-")
+    return output_dir / "cache" / f"{inst}_{safe_meth}_seed{seed}_{episodes}eps.json"
 
 
 def _load_cache(output_dir: Path, inst: str, meth: str, seed: int,
