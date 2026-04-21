@@ -9,7 +9,7 @@ Options:
     --episodes N        Training episodes per run          (default: 2000)
     --seeds N           Number of seeds, starting at 1    (default: 5)
     --instances ID...   Instance IDs to benchmark         (default: 4s 4medium 4hard 8s 8medium 8hard)
-    --methods M...      Methods to benchmark              (default: all five)
+    --methods M...      Methods to benchmark              (default: all six)
     --output-dir DIR    Directory for all outputs         (default: ./experiment_results)
     --workers N         Parallel workers (default: 1). Java methods utilisent un port dédié par worker.
     --base-port P       Premier port TCP pour les serveurs Java (default: 12345)
@@ -59,9 +59,9 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent
 
 DEFAULT_INSTANCES = ["4s", "4medium", "4hard", "8s", "8medium", "8hard"]
-DEFAULT_METHODS = ["q-none", "q-classic", "q-cp-ms", "q-cp-etr", "cp-greedy", "optimal"]
-DEFAULT_SEEDS = 5
-DEFAULT_EPISODES = 2000
+DEFAULT_METHODS = ["q-none", "q-classic", "q-cp-etr", "cp-greedy", "optimal"]
+DEFAULT_SEEDS = 40
+DEFAULT_EPISODES = 10_000
 DEFAULT_OUTPUT = ROOT / "experiment_results"
 
 # Maps our method name -> (--agent, --shaping) arguments for main.py
@@ -201,6 +201,23 @@ def _extract_entry(log: dict) -> dict | None:
         "final_sr": last.get("eval_success_rate", float("nan")),
         "final_dr": last.get("eval_avg_discounted_return", float("nan")),
     }
+
+
+def _budget_stage_changes(meth: str, episodes: int) -> list[int]:
+    """
+    Returns the list of training episodes at which the curriculum budget increases,
+    for a method with strategy=fail. Empty list if not applicable.
+
+    FailStrategy: stage_size = episodes // (max_budget + 1)
+    Budget increases at episode k*stage_size for k = 1..max_budget.
+    """
+    _, budget, strategy = _parse_method(meth)
+    if budget == 0 or strategy != "fail":
+        return []
+    stage_size = episodes // (budget + 1)
+    if stage_size == 0:
+        return []
+    return [k * stage_size for k in range(1, budget + 1)]
 
 
 # ---------------------------------------------------------------------------
@@ -477,29 +494,23 @@ def make_summary_table(data: dict, instances, methods, seeds, output_dir: Path) 
                 summary[(inst, meth)] = None
 
     csv_path = output_dir / "summary_table.csv"
+    # Columns grouped by method: instance, m1_SR_mean, m1_SR_std, m1_DR_mean, m1_DR_std, m1_n, m2_...
+    header = ["instance"]
+    for m in methods:
+        lbl = _method_label(m)
+        header += [f"{lbl}_SR_mean", f"{lbl}_SR_std", f"{lbl}_DR_mean", f"{lbl}_DR_std", f"{lbl}_n"]
     with open(csv_path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(
-            ["instance"]
-            + [f"{m}_SR_mean" for m in methods]
-            + [f"{m}_SR_std" for m in methods]
-            + [f"{m}_DR_mean" for m in methods]
-            + [f"{m}_DR_std" for m in methods]
-        )
+        writer.writerow(header)
         for inst in instances:
             row = [inst]
             for m in methods:
                 v = summary.get((inst, m))
-                row.append(f"{v['sr_mean']:.4f}" if v else "")
-            for m in methods:
-                v = summary.get((inst, m))
-                row.append(f"{v['sr_std']:.4f}" if v else "")
-            for m in methods:
-                v = summary.get((inst, m))
-                row.append(f"{v['dr_mean']:.4f}" if v else "")
-            for m in methods:
-                v = summary.get((inst, m))
-                row.append(f"{v['dr_std']:.4f}" if v else "")
+                if v:
+                    row += [f"{v['sr_mean']:.4f}", f"{v['sr_std']:.4f}",
+                            f"{v['dr_mean']:.4f}", f"{v['dr_std']:.4f}", str(v['n'])]
+                else:
+                    row += ["", "", "", "", ""]
             writer.writerow(row)
     print(f"Summary CSV saved to {csv_path}")
 
@@ -532,13 +543,18 @@ def make_summary_table(data: dict, instances, methods, seeds, output_dir: Path) 
 # Learning curves
 # ---------------------------------------------------------------------------
 
-def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path) -> None:
+def make_learning_curves(data: dict, instances, methods, seeds, episodes: int,
+                         output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     plt.style.use("seaborn-v0_8-darkgrid")
 
     for inst in instances:
         fig, ax = plt.subplots(figsize=(9, 5))
         has_data = False
+
+        # Collect curriculum stage-change x-positions across all methods for this instance
+        # Each entry: (x_episode, color, label_suffix)
+        vlines: list[tuple[int, str, str]] = []
 
         extra_iter = iter(_EXTRA_COLORS)
         for meth in methods:
@@ -570,7 +586,6 @@ def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path
 
             if not seed_curves:
                 continue
-
             all_ep_sets = [set(v[0]) for v in seed_curves.values()]
             common_eps = sorted(set.intersection(*all_ep_sets)) if all_ep_sets else []
             if not common_eps:
@@ -588,6 +603,22 @@ def make_learning_curves(data: dict, instances, methods, seeds, output_dir: Path
             ax.fill_between(common_eps, mean_c - std_c, mean_c + std_c,
                             color=color, alpha=0.18)
             has_data = True
+
+            # Collect curriculum stage-change positions for this method
+            stage_changes = _budget_stage_changes(meth, episodes)
+            for k, ep in enumerate(stage_changes):
+                vlines.append((ep, color, f"{label} b{k + 1}→{k + 2}"))
+
+        # Draw curriculum vertical lines (after all curves so they appear on top)
+        drawn_eps: set[int] = set()
+        for ep, color, lbl in vlines:
+            if ep in drawn_eps:
+                # Same episode already drawn by another method — just add a grey shared line
+                ax.axvline(ep, color="grey", linestyle=":", linewidth=0.8, alpha=0.5)
+            else:
+                ax.axvline(ep, color=color, linestyle=":", linewidth=1.2, alpha=0.7,
+                           label=f"curriculum ↑ {lbl}")
+                drawn_eps.add(ep)
 
         if has_data:
             ax.set_title(f"Learning curves — {inst}", fontsize=13, fontweight="bold")
@@ -671,7 +702,7 @@ def main() -> None:
     make_summary_table(data, args.instances, args.methods, seeds,
                        output_dir=args.output_dir)
     make_learning_curves(data, args.instances, args.methods, seeds,
-                         output_dir=args.output_dir)
+                         episodes=args.episodes, output_dir=args.output_dir)
     print("All done.")
 
 
