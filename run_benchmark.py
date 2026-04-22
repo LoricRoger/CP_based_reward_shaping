@@ -79,19 +79,27 @@ OPS = [
     "initial_etr_s",
     "env_step_s",
     "cp_step_s",
+    "cp_step_send_s",   # sous-partie : transit aller sendall()
+    "cp_step_wait_s",   # sous-partie : attente réponse Java (fixPoint)
     "cp_query_etr_s",
+    "cp_etr_send_s",    # sous-partie : transit aller sendall()
+    "cp_etr_wait_s",    # sous-partie : attente réponse Java (vanillaBP + fixPoint + marginal)
     "bellman_s",
     "episode_total_s",
 ]
 
 OP_LABELS = {
-    "reset_s":         "RESET socket",
-    "initial_etr_s":   "QUERY_ETR initial",
-    "env_step_s":      "env.step()",
-    "cp_step_s":       "STEP socket",
-    "cp_query_etr_s":  "QUERY_ETR par step",
-    "bellman_s":       "Bellman update",
-    "episode_total_s": "Total épisode",
+    "reset_s":          "RESET socket",
+    "initial_etr_s":    "QUERY_ETR initial",
+    "env_step_s":       "env.step()",
+    "cp_step_s":        "STEP total",
+    "cp_step_send_s":   "  STEP → send",
+    "cp_step_wait_s":   "  STEP ← wait (fixPoint)",
+    "cp_query_etr_s":   "QUERY_ETR total",
+    "cp_etr_send_s":    "  ETR → send",
+    "cp_etr_wait_s":    "  ETR ← wait (BP+fixPt)",
+    "bellman_s":        "Bellman update",
+    "episode_total_s":  "Total épisode",
 }
 
 METHOD_COLORS = {
@@ -208,13 +216,19 @@ def _run_instrumented(inst_cfg: dict, method: str, total_episodes: int,
         # ---- Boucle steps ------------------------------------------------
         t_env_step_total    = 0.0
         t_cp_step_total     = 0.0
+        t_cp_step_send      = 0.0
+        t_cp_step_wait      = 0.0
         t_cp_etr_total      = 0.0
+        t_cp_etr_send       = 0.0
+        t_cp_etr_wait       = 0.0
         t_bellman_total     = 0.0
 
         done = False
         final_reward = 0.0
         step_idx = 0
         terminated = False
+
+        sock = cp_client.socket if cp_client is not None else None
 
         for step_idx in range(max_steps):
             if not (0 <= state < state_size):
@@ -232,23 +246,38 @@ def _run_instrumented(inst_cfg: dict, method: str, total_episodes: int,
             t_env_step_total += time.perf_counter() - t0
             done = terminated or truncated
 
-            # STEP socket
-            if cp_client is not None:
+            # STEP socket — subdivisé send / wait
+            if sock is not None:
+                cmd = f"STEP {step_idx} {action} {next_state}\n".encode("utf-8")
                 t0 = time.perf_counter()
-                cp_client.send_step(step_idx, action, next_state)
-                t_cp_step_total += time.perf_counter() - t0
+                sock.sendall(cmd)
+                t_cp_step_send += time.perf_counter() - t0
+                t0 = time.perf_counter()
+                sock.recv(q_learning_cp.CP_BUFFER_SIZE)
+                t_cp_step_wait += time.perf_counter() - t0
+                t_cp_step_total = t_cp_step_send + t_cp_step_wait
 
-            # Shaping + ETR query
+            # Shaping + ETR query — subdivisé send / wait
             if method == "q-none":
                 reward_used = env_reward
             elif method == "q-classic":
                 reward_used = shaped_reward_classic(
                     state, next_state, env_reward, done, hole_set, goal, size
                 )
-            elif method == "q-cp-etr" and cp_client is not None:
+            elif method == "q-cp-etr" and sock is not None:
+                cmd_etr = b"QUERY_ETR\n"
                 t0 = time.perf_counter()
-                etr_after = cp_client.query_etr()
-                t_cp_etr_total += time.perf_counter() - t0
+                sock.sendall(cmd_etr)
+                t_cp_etr_send += time.perf_counter() - t0
+                t0 = time.perf_counter()
+                raw = sock.recv(q_learning_cp.CP_BUFFER_SIZE).decode("utf-8").strip()
+                t_cp_etr_wait += time.perf_counter() - t0
+                t_cp_etr_total = t_cp_etr_send + t_cp_etr_wait
+
+                try:
+                    etr_after = float(raw.split()[1]) if raw.startswith("ETR_VALUE") else None
+                except (ValueError, IndexError):
+                    etr_after = None
 
                 if etr_after is None or etr_before is None:
                     reward_used = env_reward
@@ -284,7 +313,11 @@ def _run_instrumented(inst_cfg: dict, method: str, total_episodes: int,
             "initial_etr_s":    t_initial_etr,
             "env_step_s":       t_env_step_total,
             "cp_step_s":        t_cp_step_total,
+            "cp_step_send_s":   t_cp_step_send,
+            "cp_step_wait_s":   t_cp_step_wait,
             "cp_query_etr_s":   t_cp_etr_total,
+            "cp_etr_send_s":    t_cp_etr_send,
+            "cp_etr_wait_s":    t_cp_etr_wait,
             "bellman_s":        t_bellman_total,
             "episode_total_s":  t_ep_total,
         })
