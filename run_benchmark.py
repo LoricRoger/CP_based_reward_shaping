@@ -538,7 +538,10 @@ def _boxplot_ops(all_entries: list[dict], output_dir: Path) -> None:
                 data[op][m].append(mean_val * 1000)  # ms
 
     methods_present = sorted({e["method"] for e in all_entries})
-    fig, axes = plt.subplots(2, 4, figsize=(18, 9))
+    n_ops = len(OPS)
+    n_cols = 4
+    n_rows = math.ceil(n_ops / n_cols)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 4 * n_rows))
     axes = axes.flatten()
 
     for ax_idx, op in enumerate(OPS):
