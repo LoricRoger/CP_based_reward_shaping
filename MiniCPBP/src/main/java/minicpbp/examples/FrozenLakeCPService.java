@@ -308,21 +308,29 @@ public class FrozenLakeCPService {
         System.out.println("Handling RESET command...");
         String response;
         try {
+            long t0 = System.nanoTime();
             cp = makeSolver();
+            long t1 = System.nanoTime();
 
             action = makeIntVarArray(cp, nbSteps, nbActions);
             state = makeIntVarArray(cp, nbSteps, nbStates);
             int minR = Math.min(0, nbSteps * holeReward);
             int maxR = Math.max(0, nbSteps * goalReward);
             totalReward = makeIntVar(cp, minR, maxR);
+            long t2 = System.nanoTime();
 
             Constraint c = markov(action, state, P_matrix, R_matrix, 0, totalReward);
             cp.post(c);
-
             currentMode.applyConstraints(cp, action, totalReward, goalReward, holeReward);
+            long t3 = System.nanoTime();
 
             currentEpisodeStep = 0;
             cp.fixPoint();
+            long t4 = System.nanoTime();
+
+            System.err.printf("BENCH_RESET makeSolver=%.4f makeVars=%.4f postConstraints=%.4f fixPoint=%.4f%n",
+                (t1-t0)/1e6, (t2-t1)/1e6, (t3-t2)/1e6, (t4-t3)/1e6);
+
             System.out.println("CP Model Reset successfully.");
             response = "OK RESET successful";
 
@@ -353,9 +361,16 @@ public class FrozenLakeCPService {
             if (a < 0 || a >= nbActions) return "ERROR Action index " + a + " out of bounds [0.." + (nbActions - 1) + "]";
             if (sN < 0 || sN >= nbStates) return "ERROR Next state index " + sN + " out of bounds [0.." + (nbStates - 1) + "]";
 
+            long t0 = System.nanoTime();
             action[i].assign(a);
             state[i].assign(sN);
+            long t1 = System.nanoTime();
             cp.fixPoint();
+            long t2 = System.nanoTime();
+
+            System.err.printf("BENCH_STEP assign=%.4f fixPoint=%.4f%n",
+                (t1-t0)/1e6, (t2-t1)/1e6);
+
             currentEpisodeStep++;
             return "OK STEP processed";
 
@@ -412,10 +427,16 @@ public class FrozenLakeCPService {
         if (cp == null) return "ERROR Must RESET first";
         double etrValue = 0.0;
         try {
+            long t0 = System.nanoTime();
             cp.vanillaBP(BP_ITERATIONS);
+            long t1 = System.nanoTime();
             cp.fixPoint();
-
+            long t2 = System.nanoTime();
             etrValue = state[nbSteps - 1].marginal(goalStateIdx);
+            long t3 = System.nanoTime();
+
+            System.err.printf("BENCH_ETR vanillaBP=%.4f fixPoint=%.4f marginal=%.4f%n",
+                (t1-t0)/1e6, (t2-t1)/1e6, (t3-t2)/1e6);
 
             if (Double.isNaN(etrValue) || etrValue < -1e-9 || etrValue > 1.0 + 1e-9) {
                 System.err.println("WARN: Invalid ETR value " + etrValue + " obtained. Clamping to 0.");
@@ -423,7 +444,6 @@ public class FrozenLakeCPService {
             } else {
                 etrValue = Math.max(0.0, Math.min(1.0, etrValue));
             }
-            System.err.println("ETR value pour state : " + currentEpisodeStep +" = " + etrValue);
             return "ETR_VALUE " + etrValue;
 
         } catch (InconsistencyException e) {

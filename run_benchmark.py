@@ -410,6 +410,83 @@ def _precompile_java():
 # Run one (inst, method, seed)
 # ---------------------------------------------------------------------------
 
+def _parse_java_timings(stderr_log: Path) -> dict:
+    """
+    Parse les lignes BENCH_* écrites par FrozenLakeCPService dans stderr.
+    Retourne un dict de stats agrégées (mean/std/p50/p90/p99) pour chaque
+    sous-opération Java, en millisecondes.
+
+    Format attendu dans le log :
+      BENCH_RESET  makeSolver=X makeVars=X postConstraints=X fixPoint=X
+      BENCH_STEP   assign=X fixPoint=X
+      BENCH_ETR    vanillaBP=X fixPoint=X marginal=X
+    """
+    import re
+
+    accum: dict[str, list[float]] = {}
+
+    if not stderr_log.exists():
+        return {}
+
+    pattern = re.compile(r"BENCH_(\w+)\s+(.+)")
+    kv_pattern = re.compile(r"(\w+)=([\d.]+)")
+
+    with open(stderr_log, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            m = pattern.search(line)
+            if not m:
+                continue
+            prefix = m.group(1)   # RESET, STEP, ETR
+            pairs  = m.group(2)
+            for kv in kv_pattern.finditer(pairs):
+                key = f"java_{prefix.lower()}_{kv.group(1)}"   # e.g. java_step_fixPoint
+                val = float(kv.group(2))
+                accum.setdefault(key, []).append(val)
+
+    result = {}
+    for key, vals in accum.items():
+        arr = np.array(vals)
+        result[key] = {
+            "mean": float(np.mean(arr)),
+            "std":  float(np.std(arr)),
+            "p50":  float(np.percentile(arr, 50)),
+            "p90":  float(np.percentile(arr, 90)),
+            "p99":  float(np.percentile(arr, 99)),
+            "n":    len(vals),
+        }
+    return result
+
+
+def _print_java_timing_table(java_stats: dict) -> None:
+    """Affiche un tableau récap des timings Java internes (ms)."""
+    if not java_stats:
+        return
+
+    # Grouper par commande (RESET / STEP / ETR)
+    groups: dict[str, dict[str, dict]] = {}
+    for key, stats in java_stats.items():
+        # key = "java_step_fixPoint"
+        parts = key.split("_", 2)   # ["java", "step", "fixPoint"]
+        if len(parts) < 3:
+            continue
+        cmd, op = parts[1], parts[2]
+        groups.setdefault(cmd, {})[op] = stats
+
+    col_w = 12
+    print("\n  --- Timings internes Java (ms) ---")
+    for cmd in ("reset", "step", "etr"):
+        if cmd not in groups:
+            continue
+        print(f"\n  [{cmd.upper()}]")
+        print(f"  {'Opération':<22} {'mean':>{col_w}} {'std':>{col_w}} "
+              f"{'p50':>{col_w}} {'p90':>{col_w}} {'p99':>{col_w}} {'n':>{6}}")
+        print("  " + "-" * (22 + col_w * 5 + 6))
+        for op, s in groups[cmd].items():
+            print(f"  {op:<22} {s['mean']:>{col_w}.4f} {s['std']:>{col_w}.4f} "
+                  f"{s['p50']:>{col_w}.4f} {s['p90']:>{col_w}.4f} "
+                  f"{s['p99']:>{col_w}.4f} {s['n']:>{6}}")
+
+
 def _run_one(inst_id: str, inst_cfg: dict, method: str, seed: int,
              episodes: int, output_dir: Path,
              port: int = DEFAULT_PORT, no_compile: bool = False) -> dict | None:
@@ -499,6 +576,12 @@ def _run_one(inst_id: str, inst_cfg: dict, method: str, seed: int,
     rolling = {op: _rolling_mean(op) for op in OPS}
     episodes_axis = [r["episode"] for r in episode_records]
 
+    # ---- Timings internes Java (parsing stderr) ---------------------------
+    stderr_log = log_dir / "java_stderr.log"
+    java_timings = _parse_java_timings(stderr_log) if method in JAVA_METHODS else {}
+    if java_timings:
+        _print_java_timing_table(java_timings)
+
     return {
         "instance":          inst_id,
         "method":            method,
@@ -510,6 +593,7 @@ def _run_one(inst_id: str, inst_cfg: dict, method: str, seed: int,
         "fractions":         fractions,
         "rolling":           rolling,
         "episodes_axis":     episodes_axis,
+        "java_timings":      java_timings,
     }
 
 
