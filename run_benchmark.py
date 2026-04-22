@@ -31,8 +31,10 @@ Options:
 """
 
 import argparse
+import contextlib
 import json
 import math
+import os
 import random
 import subprocess
 import sys
@@ -149,10 +151,11 @@ def _run_instrumented(inst_cfg: dict, method: str, total_episodes: int,
     map_name  = inst_cfg.get("map_name", f"{size}x{size}")
     desc      = inst_cfg.get("desc", None)
 
-    env = environment.create_environment(
-        map_name=map_name, is_slippery=slippery,
-        render_mode=None, desired_max_steps=max_steps, desc=desc, budget=0
-    )
+    with open(os.devnull, "w") as _devnull, contextlib.redirect_stdout(_devnull):
+        env = environment.create_environment(
+            map_name=map_name, is_slippery=slippery,
+            render_mode=None, desired_max_steps=max_steps, desc=desc, budget=0
+        )
     if env is None:
         raise RuntimeError("Impossible de créer l'environnement.")
 
@@ -516,7 +519,7 @@ def _boxplot_ops(all_entries: list[dict], output_dir: Path) -> None:
                 box_colors.append(_color(m))
 
         if box_data:
-            bp = ax.boxplot(box_data, patch_artist=True, labels=box_labels,
+            bp = ax.boxplot(box_data, patch_artist=True, tick_labels=box_labels,
                             medianprops={"color": "black", "linewidth": 2})
             for patch, color in zip(bp["boxes"], box_colors):
                 patch.set_facecolor(color)
@@ -562,7 +565,7 @@ def _boxplot_per_instance(all_entries: list[dict], instances: list[str],
                 box_colors.append(_color(m))
 
         if box_data:
-            bp = ax.boxplot(box_data, patch_artist=True, labels=box_labels,
+            bp = ax.boxplot(box_data, patch_artist=True, tick_labels=box_labels,
                             medianprops={"color": "black", "linewidth": 2})
             for patch, color in zip(bp["boxes"], box_colors):
                 patch.set_facecolor(color)
