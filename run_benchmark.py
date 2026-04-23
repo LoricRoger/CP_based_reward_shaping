@@ -617,6 +617,8 @@ def _boxplot_ops(all_entries: list[dict], output_dir: Path) -> None:
     for entry in all_entries:
         m = entry["method"]
         for op in OPS:
+            if op not in entry["stats"]:
+                continue
             mean_val = entry["stats"][op]["mean"]
             if not math.isnan(mean_val):
                 data[op][m].append(mean_val * 1000)  # ms
@@ -825,7 +827,7 @@ def _print_summary_table(all_entries: list[dict], instances: list[str],
                            if e["instance"] == inst and e["method"] == m]
                 if entries:
                     means = [e["stats"][op]["mean"] * 1000 for e in entries
-                             if not math.isnan(e["stats"][op]["mean"])]
+                             if op in e["stats"] and not math.isnan(e["stats"][op]["mean"])]
                     if means:
                         mu = np.mean(means)
                         sd = np.std(means)
