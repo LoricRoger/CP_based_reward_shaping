@@ -527,18 +527,15 @@ def run_all(instances_cfg: dict, instance_ids: list[str], nb_steps_list: list[in
     perf_entries: list[dict] = []
     print_lock = threading.Lock()
 
-    # Allouer 2×workers ports libres dynamiquement (port=0 → OS choisit un port libre,
-    # jamais en TIME_WAIT). Les deux pools sont séparés : bench ne partage jamais
-    # un port avec perf pour éviter toute collision même en cas de recyclage rapide.
-    all_free_ports = _find_free_ports(2 * workers)
+    # Allouer workers ports libres dynamiquement. Bench et perf sont séquentiels
+    # (d'abord tous les bench, puis tous les perf) donc un seul pool suffit.
+    all_free_ports = _find_free_ports(workers)
     bench_port_pool: queue.Queue[int] = queue.Queue()
     perf_port_pool: queue.Queue[int] = queue.Queue()
-    for p in all_free_ports[:workers]:
+    for p in all_free_ports:
         bench_port_pool.put(p)
-    for p in all_free_ports[workers:]:
         perf_port_pool.put(p)
-    print(f"  Ports bench : {all_free_ports[:workers]}")
-    print(f"  Ports perf  : {all_free_ports[workers:]}\n")
+    print(f"  Ports : {all_free_ports}\n")
 
     pbar = tqdm(total=total, desc="Progress", unit="run", dynamic_ncols=True, leave=True)
 
@@ -604,44 +601,33 @@ def run_all(instances_cfg: dict, instance_ids: list[str], nb_steps_list: list[in
         finally:
             perf_port_pool.put(port)
 
-    # Mélanger bench + perf pour maximiser le parallélisme
-    all_tasks = (
-            [("bench", inst, nb_steps, seed) for inst, nb_steps, seed in pending_bench] +
-            [("perf", inst, nb_steps, seed) for inst, nb_steps, seed in pending_perf]
-    )
-
-    if all_tasks and workers > 1:
-        with ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = {}
-            for kind, inst, nb_steps, seed in all_tasks:
-                if kind == "bench":
-                    f = executor.submit(_worker_bench, inst, nb_steps, seed)
-                else:
-                    f = executor.submit(_worker_perf, inst, nb_steps, seed)
-                futures[f] = kind
-
-            for future in as_completed(futures):
-                kind = futures[future]
-                try:
-                    entry = future.result()
-                    if entry is not None:
-                        if kind == "bench":
-                            bench_entries.append(entry)
-                        else:
-                            perf_entries.append(entry)
-                except Exception as exc:
-                    with print_lock:
-                        tqdm.write(f"  [ERROR] future: {exc}")
-    else:
-        for kind, inst, nb_steps, seed in all_tasks:
-            if kind == "bench":
-                entry = _worker_bench(inst, nb_steps, seed)
+    def _run_phase(tasks, worker_fn, result_list, phase_name):
+        """Lance une liste de tâches en parallèle avec workers workers."""
+        if not tasks:
+            return
+        with print_lock:
+            tqdm.write(f"\n  --- Phase {phase_name} ({len(tasks)} runs) ---")
+        if workers > 1:
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                futures = {executor.submit(worker_fn, inst, nb_steps, seed): (inst, nb_steps, seed)
+                           for inst, nb_steps, seed in tasks}
+                for future in as_completed(futures):
+                    try:
+                        entry = future.result()
+                        if entry is not None:
+                            result_list.append(entry)
+                    except Exception as exc:
+                        with print_lock:
+                            tqdm.write(f"  [ERROR] future: {exc}")
+        else:
+            for inst, nb_steps, seed in tasks:
+                entry = worker_fn(inst, nb_steps, seed)
                 if entry is not None:
-                    bench_entries.append(entry)
-            else:
-                entry = _worker_perf(inst, nb_steps, seed)
-                if entry is not None:
-                    perf_entries.append(entry)
+                    result_list.append(entry)
+
+    # Phase 1 : bench (timing) — tous les runs, puis phase 2 : perf (SR)
+    _run_phase(pending_bench, _worker_bench, bench_entries, "BENCH (timing)")
+    _run_phase(pending_perf, _worker_perf, perf_entries, "PERF (success rate)")
 
     pbar.close()
     return bench_entries, perf_entries
