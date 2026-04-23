@@ -164,11 +164,10 @@ def _run_instrumented(inst_cfg: dict, total_episodes: int, cp_client) -> list[di
             raise RuntimeError(f"CP RESET failed: {resp}")
 
         etr_before = cp_client.query_etr() or 0.0
-        t_reset_total = time.perf_counter() - t_ep  # tout le reset + ETR initial
+        t_reset_total = time.perf_counter() - t_ep  # reset env + RESET socket + ETR initial
 
         t_cp_step_wait = 0.0
         t_cp_etr_wait = 0.0
-        t_reset_total = time.perf_counter() - t_ep  # tout le reset + ETR initial
 
         done = False
         step_idx = 0

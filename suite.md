@@ -73,11 +73,14 @@ Fichier de suivi global : ce qui a été fait, ce qui reste à faire, les questi
 ## Analyse de performance (résultats benchmark 4×4)
 
 - [x] Benchmark 4s / 4medium / 4hard, 5 seeds, 10 000 épisodes (`q-none` vs `q-cp-etr`)
-- [x] Résultat principal : `q-cp-etr` est ~250× plus lent que `q-none` par épisode
+- [x] Résultat principal : `q-cp-etr` est ~250× plus lent que `q-none` par épisode (4×4)
 - [x] Répartition : 61% fixPoint (STEP), 33% vanillaBP (ETR), 3% RESET — stable entre instances
 - [x] Timings Java par appel : fixPoint ≈ 0.93 ms, vanillaBP ≈ 0.47 ms
 - [x] Observation clé : fixPoint après QUERY_ETR est gratuit (0.000 ms) car STEP l'a déjà fait
-- [x] `ANALYSE_BENCHMARK.md` écrit dans `benchmark_results/`
+- [x] Benchmark 8×8 exploratoire (500 épisodes, 3 seeds) : ~1 250–2 200 ms/ep, ×2 300–6 600 vs q-none
+- [x] Coût 4×4→8×8 supra-linéaire (~×40–50 observé, vs ×8 attendu linéaire)
+- [x] nb_steps benchmark : cp_nbSteps=20 optimal sur 4s/4medium, 30+ requis sur 4hard
+- [x] `ANALYSE_BENCHMARK.md` mis à jour avec résultats 8×8 et nb_steps
 
 ---
 
@@ -85,26 +88,23 @@ Fichier de suivi global : ce qui a été fait, ce qui reste à faire, les questi
 
 ### A — Impact de `cp_nbSteps` (priorité haute)
 
-- [ ] Lancer `run_nbsteps_benchmark.py` sur instance `4s` avec nb_steps = 10, 20, 50, 110
-- [ ] Identifier le seuil en dessous duquel la qualité de l'agent se dégrade
-- [ ] Déterminer le bon compromis timing/qualité (cible : 20–30 steps ?)
-- [ ] Relancer sur `4medium` et `4hard` si le résultat sur `4s` est concluant
+- [x] Lancer `run_nbsteps_benchmark.py` sur 4s/4medium/4hard avec nb_steps = 10, 20, 30, 40, 50, 110
+- [x] Identifier le seuil en dessous duquel la qualité de l'agent se dégrade
+- [x] Résultat : **cp_nbSteps=20 optimal sur 4s/4medium** (×6 speedup, SR identique) ; **30 minimum sur 4hard**
+- [ ] Tester l'impact de `cp_nbSteps` sur instances 8×8
 
 ### B — Supprimer `fixPoint` dans `handleStep()` (priorité haute, modif Java)
 
-- [ ] Retirer `cp.fixPoint()` de `handleStep()` — économie potentielle de ~61% du temps total
+- [ ] Retirer `cp.fixPoint()` de `handleStep()` — économie potentielle de ~76% du temps total (en 8×8)
 - [ ] Vérifier que `vanillaBP` sur graphe non-propagé reste correct (précision ETR)
 - [ ] Mesurer timing + SR avant/après avec `run_benchmark.py`
 - [?] Risque : vanillaBP sur graphe non-propagé peut donner de mauvaises marginales
 
-### C — Benchmark sur instances 8×8 (priorité haute, données manquantes)
+### C — Benchmark sur instances 8×8 (priorité haute)
 
-- [ ] Estimer le coût sur 8×8 avec peu d'épisodes d'abord :
-  ```bash
-  .venv/bin/python run_benchmark.py --instances 8s --methods q-none q-cp-etr --seeds 3 --episodes 500 --force
-  ```
-- [ ] Si ~400 ms/épisode confirmé, planifier une campagne longue (10 000 épisodes ≈ 67 min/run)
-- [ ] Tester l'impact de `cp_nbSteps` sur 8×8 si l'optimisation A est concluante
+- [x] Mesure exploratoire 500 épisodes : **~1 250–2 200 ms/épisode** (×2 300–6 600 vs q-none)
+- [x] Coût réel 4×4→8×8 : ×40–50 (supra-linéaire, pas ×8 comme attendu linéaire)
+- [ ] Campagne longue 8×8 (10 000 épisodes ≈ 4–6h/run) — après validation optimisation B
 
 ### D — Fusionner STEP + QUERY_ETR en une commande (priorité basse)
 
@@ -131,6 +131,34 @@ Fichier de suivi global : ce qui a été fait, ce qui reste à faire, les questi
   bonne métrique pour comparer les modes ?
 - [?] Modifier la visualisation de Gymnasium (patch `frozen_lake.py` pour `elf_img = self.elf_images[last_action%4]`) :
   fragile car dans `.venv`, perdu si `pip install` est relancé
+- [?] Comment adapter le modèle CP (actuellement Markov discret) à des espaces d'états continus ou exponentiellement grands ?
+- [?] Quel agent de base pour chaque niveau : DQN ? PPO ? A2C ?
+- [?] Faut-il une abstraction de l'espace d'états pour construire le modèle CP sur les niveaux 3-5 ?
+
+---
+
+## Roadmap — Nouveaux environnements
+
+Objectif : valider que le RS par CP scale au-delà des Q-tables vers du deep RL (DQN/PPO).
+
+- [x] **Niveau 1 — FrozenLake (baseline)**
+  Q-table suffisante, validation que le RS CP fonctionne
+
+- [ ] **Niveau 2 — CrossingTraffic.MDP (ippc2011/2014)**
+  Même paradigme grille, trafic stochastique dynamique
+  Espace d'états explose → premier vrai test DQN + RS CP
+
+- [ ] **Niveau 3 — SysAdmin.MDP (ippc2011/2014)**
+  Graphe de dépendances stochastique entre machines
+  Structure non-spatiale, état = vecteur binaire variable
+
+- [ ] **Niveau 4 — SkillTeaching.MDP (ippc2014)**
+  Prérequis entre compétences = contraintes naturelles pour le CP
+  Test où le RS CP devrait avoir le plus de valeur ajoutée
+
+- [ ] **Niveau 5 — Navigation.Continuous ou Reservoir.Continuous**
+  Espace continu, CP classique ne s'applique plus directement
+  Test limite de l'approche, potentielle contribution originale
 
 ---
 

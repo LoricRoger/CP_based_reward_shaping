@@ -40,3 +40,16 @@ results/
 plots/
 tests/
 notebook_plots/
+
+# Benchmark — données générées (lourdes, regénérables)
+benchmark_results/cache/
+benchmark_results/java_logs/
+nbsteps_results/cache/
+nbsteps_results/java_logs/
+
+# Claude Code
+.claude/
+memory/
+
+# Python venv
+.venv/

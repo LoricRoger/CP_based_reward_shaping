@@ -1,6 +1,6 @@
 # Analyse de performance — CP reward shaping
 
-Date de mise à jour : 2026-04-22
+Date de mise à jour : 2026-04-23
 Branche : `feat/benchmark`
 Outil : `run_benchmark.py`
 
@@ -39,10 +39,12 @@ Le log Java est parsé automatiquement après chaque run et affiché dans le ter
 
 ### Données collectées
 
-- Instances : **4s, 4medium, 4hard** (toutes 4×4, `cp_nbSteps=110`, `max_steps=100`)
-- Méthodes : `q-none`, `q-cp-etr`
-- Épisodes : 10 000 par run
-- Seeds : **5 seeds** par (instance × méthode)
+- Instances 4×4 : **4s, 4medium, 4hard** (`cp_nbSteps=110`, `max_steps=100`)
+  - Méthodes : `q-none`, `q-cp-etr`, `q-classic`
+  - Épisodes : 10 000 par run — Seeds : **5–40 seeds**
+- Instances 8×8 : **8s, 8medium, 8hard** (`cp_nbSteps=220`, `max_steps=200`)
+  - Méthodes : `q-none`, `q-cp-etr`, `q-classic`
+  - Épisodes : 500 par run (estimation coût) — Seeds : **3 seeds**
 
 ---
 
@@ -50,17 +52,29 @@ Le log Java est parsé automatiquement après chaque run et affiché dans le ter
 
 ### Temps total par épisode (ms)
 
+**Instances 4×4** (`cp_nbSteps=110`, 10 000 épisodes, 5 seeds)
+
 | Instance | q-none | q-cp-etr | Facteur |
 |----------|--------|----------|---------|
 | 4s | 0.19 | **47.9** | ×252 |
 | 4medium | 0.10 | **26.5** | ×268 |
 | 4hard | 0.18 | **43.7** | ×249 |
 
-q-cp-etr est ~250× plus lent par épisode.
 Sur 10 000 épisodes : ~8 min (4s/4hard) ou ~4 min (4medium) vs ~2 s.
 
+**Instances 8×8** (`cp_nbSteps=220`, 500 épisodes, 3 seeds)
+
+| Instance | q-none | q-cp-etr | Facteur | Total 10 000 ep (estimé) |
+|----------|--------|----------|---------|--------------------------|
+| 8s | 0.76 | **~2 183** | ×2 876 | **~6 h** |
+| 8medium | 0.23 | **~1 525** | ×6 623 | **~4 h 15** |
+| 8hard | 0.53 | **~1 251** | ×2 347 | **~3 h 30** |
+
+Le passage 4×4 → 8×8 multiplie le temps Java par ~40–50× (graphe CP ×8 mais complexité
+supra-linéaire confirmée : fixPoint et vanillaBP semblent superlinéaires en taille du graphe).
+
 La différence entre instances s'explique par le nombre moyen de steps/épisode :
-4medium converge plus vite (épisodes plus courts → moins d'appels Java).
+4medium/8medium convergent plus vite (épisodes plus courts → moins d'appels Java).
 
 ### Tableau complet par opération (ms/épisode, moyenne ± std sur 5 seeds)
 
@@ -94,6 +108,23 @@ ETR ← wait vanillaBP     0.000±0.000  14.623±0.237  (33.5%)
 Total épisode            0.176±0.004  43.703±0.725
 ```
 
+**Instance 8s** (500 épisodes, 3 seeds — décomposition seed 1)
+```
+Opération                    q-none      q-cp-etr
+RESET socket             0.003±0.000   33.92±6.6    (1.5%)
+QUERY_ETR initial        0.000±0.000    9.69±2.5    (0.4%)
+env.step()               0.098±0.001    1.47±1.1    (0.1%)
+STEP total               0.000±0.000 1719.03±947   (75.9%)
+  STEP ← wait fixPoint   0.000±0.000 1718.28±947   (75.9%)
+QUERY_ETR total          0.000±0.000  497.55±279   (22.0%)
+  ETR ← wait vanillaBP   0.000±0.000  496.95±279   (21.9%)
+Bellman update           0.056±0.001    1.49±1.1    (0.1%)
+Total épisode            0.759±0.013 2264.1±...
+```
+
+La répartition fixPoint/vanillaBP reste quasi identique à 4×4 (~76%/~22%) — le ratio
+est structurel, indépendant de la taille. Seuls les valeurs absolues explosent.
+
 ### Timings Java internes (par appel, stables sur toutes les instances)
 
 **STEP** (~29 appels/épisode sur 4s, ~15 sur 4medium) :
@@ -116,60 +147,94 @@ fixPoint        : 0.57–0.62 ms  →  propagation initiale
 makeSolver/Vars : ~0.05 ms  →  négligeable
 ```
 
+### Résultats nb_steps : tradeoff timing / success rate
+
+Benchmark `run_nbsteps_benchmark.py` : timing sur 2 000 épisodes, SR final sur 10 000 épisodes.
+
+**Instance 4s** (réf. 110 steps = 45.3 ms, SR=73.5%)
+
+| cp_nbSteps | Timing (ms/ep) | Speedup vs 110 | SR final (%) |
+|-----------|---------------|----------------|-------------|
+| 10 | 7.4 ± 2.1 | **×6.1** | 71.6 ± 6.6 |
+| 20 | 7.4 ± 1.6 | **×6.1** | 73.5 ± 4.9 |
+| 30 | 11.9 ± 0.3 | ×3.8 | 67.9 ± 11.8 |
+| 40 | 15.6 ± 0.7 | ×2.9 | 73.5 ± 4.2 |
+| 50 | 17.7 ± 0.5 | ×2.6 | 73.1 ± 4.5 |
+| 110 | 45.3 ± 0.8 | ×1.0 | 73.5 ± 5.5 |
+
+**Instance 4medium** (réf. 110 steps = 28.9 ms, SR=38.7%)
+
+| cp_nbSteps | Timing (ms/ep) | Speedup | SR final (%) |
+|-----------|---------------|---------|-------------|
+| 10 | 4.5 ± 0.2 | **×6.5** | 29.1 ± 6.9 |
+| 20 | 5.4 ± 0.2 | **×5.3** | 34.1 ± 9.8 |
+| 30 | 8.3 ± 0.6 | ×3.5 | 36.7 ± 6.8 |
+| 40 | 10.2 ± 0.3 | ×2.8 | 36.7 ± 3.4 |
+| 50 | 12.9 ± 0.2 | ×2.2 | 38.9 ± 3.7 |
+| 110 | 28.9 ± 0.7 | ×1.0 | 38.7 ± 5.2 |
+
+**Instance 4hard** (réf. 110 steps = 46.1 ms, SR=36.5%)
+
+| cp_nbSteps | Timing (ms/ep) | Speedup | SR final (%) |
+|-----------|---------------|---------|-------------|
+| 10 | 5.4 ± 0.4 | **×8.5** | 29.4 ± 3.1 |
+| 20 | 7.4 ± 0.3 | **×6.3** | 28.7 ± 3.4 |
+| 30 | 10.7 ± 0.3 | ×4.3 | 27.9 ± 6.3 |
+| 40 | 16.2 ± 1.2 | ×2.8 | 30.2 ± 5.8 |
+| 50 | 18.8 ± 0.5 | ×2.5 | 31.4 ± 5.7 |
+| 110 | 46.1 ± 1.0 | ×1.0 | 36.5 ± 4.8 |
+
+**Conclusions nb_steps :**
+
+- Sur **4s et 4medium** : `cp_nbSteps=20` donne ~×6 de speedup **sans perte de SR**
+  (SR identique ou dans la variance de 110). Recommandation : **utiliser 20 par défaut**.
+- Sur **4hard** : la SR chute significativement sous 30 steps (29% vs 36.5% à 110).
+  L'instance difficile nécessite un horizon plus long. Recommandation : **30–40 minimum**.
+- Le timing n'est pas parfaitement linéaire en nb_steps (saut entre 20→30 sur 4s/4hard),
+  ce qui suggère un overhead fixe par épisode indépendant du nombre de steps.
+
+---
+
 ### Observations clés
 
-1. **94% du temps est du calcul Java pur.** Le réseau localhost est négligeable
-   (send aller : 0.2 ms total). Python ne peut pas être optimisé davantage.
+1. **94–99% du temps est du calcul Java pur.** Le réseau localhost est négligeable
+   (send aller : <1 ms total). Python ne peut pas être optimisé davantage.
 
-2. **La répartition est stable entre instances** : ~61% fixPoint STEP, ~33% vanillaBP ETR,
-   ~3% RESET. Ce ratio ne dépend pas de la difficulté de l'instance mais de la longueur
-   moyenne des épisodes.
+2. **La répartition est stable entre instances ET entre tailles** : ~76% fixPoint STEP,
+   ~22% vanillaBP ETR, ~2% RESET en 8×8 (vs ~61%/33%/3% en 4×4). La différence de ratio
+   s'explique par l'allongement des épisodes en 8×8 (plus de steps → plus de STEP relatifs).
 
 3. **Le fixPoint après QUERY_ETR est gratuit (0.000 ms).** Les domaines CP sont déjà
    propagés par le fixPoint du STEP précédent. Cela signifie que le fixPoint de STEP
    fait "doublement" le travail — c'est un levier d'optimisation direct.
 
-4. **`cp_nbSteps=110` pour des épisodes de max 100 steps.** Le graphe CP a
-   `110 × 16 = 1 760` nœuds en 4×4. C'est le paramètre principal qui dimensionne
-   le coût de fixPoint et vanillaBP.
+4. **`cp_nbSteps` est le paramètre de contrôle principal.** Graphe CP en 4×4 : `110 × 16 = 1 760`
+   nœuds. En 8×8 : `220 × 64 = 14 080` nœuds (×8). Le coût est supra-linéaire (~×40–50 observé).
 
-5. **Les std sont faibles** (±1% sur le total épisode) — les timings sont très stables.
-   5 seeds est suffisant pour confirmer les ordres de grandeur.
+5. **Les std sont faibles en 4×4** (±1-2% sur le total épisode). En 8×8, la std est plus
+   élevée (~5-18%) car les épisodes courts/longs sont plus hétérogènes avec 500 eps seulement.
 
 ---
 
 ## 3. Ce qu'il faudrait tester ensuite (par priorité)
 
-### A — Impact de `cp_nbSteps` (priorité haute, facile, fort impact)
+### A — Impact de `cp_nbSteps` ✅ FAIT
 
-C'est le paramètre le plus impactant : fixPoint et vanillaBP sont linéaires en la
-taille du graphe CP (`nbSteps × nbStates`).
+Résultats disponibles dans `nbsteps_results/`. Voir tableau complet ci-dessus.
 
-**Protocole** : modifier `cp_nbSteps` dans `instances.json` pour 4s, mesurer
-timing ET success rate (via `run_experiment.py`) pour chaque valeur :
+**Recommandations issues du benchmark :**
+- `cp_nbSteps=20` est le bon compromis sur **4s et 4medium** (×6 speedup, SR préservé)
+- `cp_nbSteps=30` minimum sur **4hard** (SR chute significativement en dessous)
+- Pour 8×8 : à tester — si la structure tient, recommandation probable : 40–60
 
-| cp_nbSteps | Gain timing attendu | À tester |
-|-----------|--------------------|----|
-| 110 (actuel) | référence | déjà mesuré |
-| 50 | ~×2.2 | oui |
-| 20 | ~×5.5 | oui |
-| 10 | ~×11 | oui |
-
-Questions : en dessous de quel `cp_nbSteps` la qualité de l'agent se dégrade ?
-Y a-t-il un bon compromis autour de 20–30 steps ?
-
-```bash
-# Modifier cp_nbSteps dans instances.json, puis :
-python run_benchmark.py --instances 4s --methods q-cp-etr --seeds 3 --episodes 2000 --force
-python run_experiment.py --instances 4s --methods q-cp-etr --seeds 5 --episodes 5000 --force
-```
+**Restant :** valider sur instances 8×8 avec le même protocole.
 
 ### B — Supprimer le fixPoint dans STEP, le différer au QUERY_ETR (priorité haute, modif Java)
 
 Observation : le fixPoint après QUERY_ETR est actuellement gratuit parce que le STEP
 précédent a déjà propagé. Si on supprime le `cp.fixPoint()` dans `handleStep()` et
 qu'on laisse `vanillaBP` travailler sur le graphe non-encore-propagé, on économise
-~61% du temps total.
+~76% du temps total (en 8×8, ~1718 ms/épisode sur ~2264).
 
 **Risque** : vanillaBP sur graphe non-propagé peut être plus lent ou moins précis.
 À mesurer avec le benchmark après la modif Java.
@@ -181,19 +246,14 @@ state[i].assign(sN);
 // cp.fixPoint();  ← supprimer
 ```
 
-### C — Mesurer sur instances 8×8 (priorité haute, données manquantes)
+### C — Mesurer sur instances 8×8 ✅ FAIT (500 épisodes)
 
-En 8×8 : `cp_nbSteps=220`, `nbStates=64` → graphe `220 × 64 = 14 080` nœuds
-vs `110 × 16 = 1 760` en 4×4 (×8 plus grand).
+Résultats : ~1 250–2 200 ms/épisode selon l'instance (×2 300–×6 600 vs q-none).
+Le coût réel 4×4→8×8 est ×40–50 (supra-linéaire, pas ×8 comme attendu).
 
-fixPoint et vanillaBP étant au moins linéaires, on attend ×8 sur les temps Java,
-soit ~400 ms/épisode → 10 000 épisodes ≈ **67 minutes** par run.
-
-```bash
-python run_benchmark.py --instances 8s --methods q-none q-cp-etr --seeds 3 --episodes 500 --force
-```
-
-Commencer avec peu d'épisodes pour estimer le coût avant de lancer une longue campagne.
+**Restant :** si optimisation B est validée, relancer sur 8×8 avec plus d'épisodes
+pour mesurer l'impact concret sur la SR (10 000 épisodes ≈ 4–6h/run sans optim,
+~40–60 min avec cp_nbSteps=40).
 
 ### D — Fusionner STEP + QUERY_ETR en une commande (priorité basse, modif Java + Python)
 
@@ -210,12 +270,21 @@ mais utile si le serveur Java tourne sur une machine distante.
 benchmark_results/
 ├── ANALYSE_BENCHMARK.md   # ce fichier
 ├── cache/                 # un JSON par (instance, method, seed, episodes) — skip auto
+│                          # contient 4s/4medium/4hard (10k eps) + 8s/8medium/8hard (500 eps)
 ├── java_logs/             # stdout/stderr Java par run (contient les BENCH_* lines)
 └── plots/
     ├── boxplot_ops.png          # distribution de chaque opération par méthode
     ├── boxplot_by_instance.png  # temps total par instance
     ├── time_evolution_*.png     # évolution temporelle (moyenne glissante)
     └── op_breakdown_*.png       # fraction du temps par opération
+
+nbsteps_results/
+├── cache/                 # bench (2k eps) + perf (10k eps) pour chaque (inst, steps, seed)
+│                          # 4s/4medium/4hard × steps={10,20,30,40,50,110}
+└── plots/
+    ├── timing_vs_nbsteps_*.png  # timing moyen par cp_nbSteps
+    ├── sr_vs_nbsteps_*.png      # success rate final par cp_nbSteps
+    └── tradeoff_*.png           # double-axe timing + SR
 ```
 
 ### Commandes utiles
