@@ -64,6 +64,8 @@ def main():
     parser.add_argument('--port', type=int, default=12345, help="TCP port for the Java CP server (default: 12345)")
     parser.add_argument('--no-compile', action='store_true',
                         help="Skip 'mvn compile' step (use when Java is already compiled)")
+    parser.add_argument('--cp-nbsteps-override', type=int, default=-1,
+                        help="Override cp_nbSteps for the Java CP server (-1 = use instances.json value)")
     parser.add_argument('--results-dir', type=str, default=None,
                         help="Dossier racine où écrire les résultats (default: results/)")
     parser.add_argument('--verbose', type=int, choices=[0, 1, 2], default=0,
@@ -181,7 +183,7 @@ def main():
             tqdm.write(f"ERROR: Cannot determine Java mode for agent='{args.agent}', shaping='{args.shaping}'.")
             env.close()
             return
-        java_args_list = [mode_str, str(args.budget), str(args.port)]
+        java_args_list = [mode_str, str(args.budget), str(args.port), str(args.cp_nbsteps_override)]
 
         if args.no_compile:
             cp_file = os.path.join(cp_dir, 'target', 'java_classpath.txt')
