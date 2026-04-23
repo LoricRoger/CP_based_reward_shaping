@@ -229,22 +229,35 @@ Résultats disponibles dans `nbsteps_results/`. Voir tableau complet ci-dessus.
 
 **Restant :** valider sur instances 8×8 avec le même protocole.
 
-### B — Supprimer le fixPoint dans STEP, le différer au QUERY_ETR (priorité haute, modif Java)
+### B — Déplacer fixPoint de STEP vers QUERY_ETR ❌ TESTÉ — INEFFICACE
 
-Observation : le fixPoint après QUERY_ETR est actuellement gratuit parce que le STEP
-précédent a déjà propagé. Si on supprime le `cp.fixPoint()` dans `handleStep()` et
-qu'on laisse `vanillaBP` travailler sur le graphe non-encore-propagé, on économise
-~76% du temps total (en 8×8, ~1718 ms/épisode sur ~2264).
+**Hypothèse initiale** : supprimer `cp.fixPoint()` dans `handleStep()` et le déplacer
+en tête de `handleQueryETR()` pour éviter les propagations inutiles entre STEP et ETR.
+Gain espéré : ~76% du temps total.
 
-**Risque** : vanillaBP sur graphe non-propagé peut être plus lent ou moins précis.
-À mesurer avec le benchmark après la modif Java.
+**Résultats observés** (branche `feat/optim-no-fixpoint`, 3 seeds × 2000 épisodes) :
 
-```java
-// handleStep : retirer cp.fixPoint() après assign
-action[i].assign(a);
-state[i].assign(sN);
-// cp.fixPoint();  ← supprimer
+| Instance | Avant (ms/ep) | Après (ms/ep) | Δ |
+|----------|--------------|--------------|---|
+| 4s | 47.9 | **46.5** | -3% |
+| 4medium | 26.5 | **29.7** | +12% |
+| 4hard | 43.7 | **46.8** | +7% |
+
+Timings Java internes après modification :
+
 ```
+[STEP]   assign    : 0.0005 ms   (fixPoint supprimé ✓)
+[ETR]    fixPoint  : ~0.96 ms    (fait le vrai travail, comme STEP avant)
+         vanillaBP : ~0.50 ms    (stable)
+```
+
+**Explication** : fixPoint est sous-linéaire en nombre d'assigns accumulés, mais pas
+assez pour que "1 gros fixPoint par épisode" soit moins cher que "N petits fixPoints
+par step". Le graphe CP est à propagation globale — chaque assign force de toute façon
+une repropagation complète au prochain fixPoint. Déplacer le fixPoint ne l'évite pas,
+ça le concentre juste ailleurs.
+
+**Conclusion : l'optimisation B n'apporte pas de gain. Branche fermée sans merge.**
 
 ### C — Mesurer sur instances 8×8 ✅ FAIT (500 épisodes)
 

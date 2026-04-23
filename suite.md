@@ -93,18 +93,18 @@ Fichier de suivi global : ce qui a été fait, ce qui reste à faire, les questi
 - [x] Résultat : **cp_nbSteps=20 optimal sur 4s/4medium** (×6 speedup, SR identique) ; **30 minimum sur 4hard**
 - [ ] Tester l'impact de `cp_nbSteps` sur instances 8×8
 
-### B — Supprimer `fixPoint` dans `handleStep()` (priorité haute, modif Java)
+### B — Déplacer `fixPoint` de STEP vers QUERY_ETR ❌ Testé — inefficace
 
-- [ ] Retirer `cp.fixPoint()` de `handleStep()` — économie potentielle de ~76% du temps total (en 8×8)
-- [ ] Vérifier que `vanillaBP` sur graphe non-propagé reste correct (précision ETR)
-- [ ] Mesurer timing + SR avant/après avec `run_benchmark.py`
-- [?] Risque : vanillaBP sur graphe non-propagé peut donner de mauvaises marginales
+- [x] Implémenté sur `feat/optim-no-fixpoint`, mesuré sur 3 seeds × 2000 épisodes
+- [x] Résultat : **0% de gain** (4s : 47.9→46.5ms, 4medium : 26.5→29.7ms, 4hard : 43.7→46.8ms)
+- [x] Explication : fixPoint sous-linéaire mais pas assez — déplacer ne supprime rien, ça concentre
+- [x] Branche fermée sans merge
 
 ### C — Benchmark sur instances 8×8 (priorité haute)
 
 - [x] Mesure exploratoire 500 épisodes : **~1 250–2 200 ms/épisode** (×2 300–6 600 vs q-none)
 - [x] Coût réel 4×4→8×8 : ×40–50 (supra-linéaire, pas ×8 comme attendu linéaire)
-- [ ] Campagne longue 8×8 (10 000 épisodes ≈ 4–6h/run) — après validation optimisation B
+- [ ] Campagne longue 8×8 (10 000 épisodes ≈ 4–6h/run) — après réduction cp_nbSteps
 
 ### D — Fusionner STEP + QUERY_ETR en une commande (priorité basse)
 
