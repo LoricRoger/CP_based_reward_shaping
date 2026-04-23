@@ -28,6 +28,7 @@ public class FrozenLakeCPService {
 
     private static int PORT = 12345;
     private static final String INSTANCES_JSON_FILE = "instances.json";
+    private static int nbStepsOverride = -1; // -1 = use instances.json value
 
     private static int squareSize = -1;
     private static int nbStates = -1;
@@ -77,6 +78,14 @@ public class FrozenLakeCPService {
                 System.exit(1);
             }
         }
+        if (args.length > 3) {
+            try {
+                nbStepsOverride = Integer.parseInt(args[3]);
+            } catch (NumberFormatException e) {
+                System.err.println("FATAL: cp_nbSteps override invalide '" + args[3] + "'. Doit être un entier.");
+                System.exit(1);
+            }
+        }
 
         switch (modeArg) {
             case "MS":
@@ -101,7 +110,9 @@ public class FrozenLakeCPService {
     }
 
     static void runServer() {
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+        try (ServerSocket serverSocket = new ServerSocket()) {
+            serverSocket.setReuseAddress(true);
+            serverSocket.bind(new java.net.InetSocketAddress(PORT));
             System.out.println("FrozenLake CP Server listening on port " + PORT);
 
             while (true) {
@@ -251,7 +262,7 @@ public class FrozenLakeCPService {
             sideSlipProba = (1.0 - noSlipProba) / 2.0;
             holeReward = d.optInt("holeReward", 0);
             goalReward = d.optInt("goalReward", 1);
-            nbSteps = d.getInt("cp_nbSteps");
+            nbSteps = (nbStepsOverride > 0) ? nbStepsOverride : d.getInt("cp_nbSteps");
 
             JSONArray hArray = d.getJSONArray("holes");
             List<Integer> vHoles = new ArrayList<>();
