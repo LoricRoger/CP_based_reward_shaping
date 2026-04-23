@@ -121,15 +121,19 @@ def run_optimal_policy(env, optimal_policy_grid, size, max_steps):
 
 
 def run_cp_ms_greedy_agent(env, cp_client: CPRewardClient, total_episodes_for_eval, max_steps, size, action_size,
-                           instance_id):
+                           instance_id, budget: int = 0):
     """
     Runs a greedy agent based on CP-MS marginals for evaluation.
     Queries CP server at each step (NO CACHING).
     Assumes cp_client is already connected and initialized.
+
+    If budget > 0, the agent operates in 8-action mode: no-slip actions (4-7) are
+    available until the budget is exhausted, after which their marginals are masked
+    to -inf so argmax never selects them.
     """
     print(f"--- Running CP-MS Greedy Agent Evaluation (Instance: {instance_id}, No Cache) ---")
     num_episodes = total_episodes_for_eval
-    print(f"Evaluating for {num_episodes} episodes with max_steps={max_steps}...")
+    print(f"Evaluating for {num_episodes} episodes with max_steps={max_steps}, budget={budget}...")
 
     if not cp_client or not cp_client.is_connected:
         print("ERROR: CP-MS Greedy Agent requires a connected and initialized CP client.")
@@ -161,6 +165,7 @@ def run_cp_ms_greedy_agent(env, cp_client: CPRewardClient, total_episodes_for_ev
         step_count = 0
         cp_model_step = 0  # Tracks the current CP model's step count within the episode
         env_reward = 0.0  # Initialize environment reward for the episode
+        remaining_budget = budget  # Track no-slip actions left this episode
 
         while not done:
             if step_count >= max_steps:
@@ -183,6 +188,11 @@ def run_cp_ms_greedy_agent(env, cp_client: CPRewardClient, total_episodes_for_ev
                 else:
                     action_marginals.append(marginal)
 
+            # Mask no-slip actions (4-7) if budget is exhausted
+            if budget > 0 and remaining_budget <= 0:
+                for act_idx in range(4, action_size):
+                    action_marginals[act_idx] = -1.0
+
             if not action_marginals or not all_queries_successful:
                 print(
                     f"    WARN: All marginal queries failed or no marginals for S{current_env_state}, CPStep{cp_model_step}. Taking random action.")
@@ -203,6 +213,10 @@ def run_cp_ms_greedy_agent(env, cp_client: CPRewardClient, total_episodes_for_ev
 
             if cp_client.is_connected:  # Inform CP server about the taken step
                 cp_client.send_step(cp_model_step, action_to_take, next_env_state)
+
+            # Decrement budget if a no-slip action was successfully executed
+            if budget > 0 and action_to_take >= 4:
+                remaining_budget -= 1
 
             episode_undiscounted_return += env_reward
             current_env_state = next_env_state

@@ -79,10 +79,13 @@ def load_results_log(filename="results/training_log.json"):
         return None
 
 
-def evaluate_agent(env, q_table, max_steps, eval_episodes=config.EVAL_EPISODES):
+def evaluate_agent(env, q_table, max_steps, eval_episodes=config.EVAL_EPISODES, aug_mapper=None):
     """
     Evaluate agent policy. Calculates success rate, avg env return (undiscounted),
     and avg discounted return.
+
+    aug_mapper: optional AugmentedStateMapper. When provided, Q-table rows are indexed
+                by (position, budget_remaining) pairs encoded as flat indices.
     """
     if q_table is None:
         return 0.0, 0.0, 0.0, 0.0, 0.0
@@ -96,6 +99,16 @@ def evaluate_agent(env, q_table, max_steps, eval_episodes=config.EVAL_EPISODES):
     if eval_episodes <= 0:
         print("WARN: eval_episodes is zero or negative.")
         return 0.0, 0.0, 0.0, 0.0, 0.0
+
+    # Resolve the budget wrapper once (needed to read current budget per step)
+    budget_wrapper = None
+    if aug_mapper is not None:
+        wrapper = env
+        while wrapper is not None:
+            if hasattr(wrapper, 'budget'):
+                budget_wrapper = wrapper
+                break
+            wrapper = getattr(wrapper, 'env', None)
 
     for episode_idx in tqdm(range(eval_episodes)):
         state, info = env.reset()
@@ -112,13 +125,20 @@ def evaluate_agent(env, q_table, max_steps, eval_episodes=config.EVAL_EPISODES):
                 truncated = True
                 done = True
                 break
-            if not (0 <= state < q_table.shape[0]):
-                print(f"ERROR: Invalid state {state} during evaluation (Episode {episode_idx}).")
+
+            # Compute Q-table index (plain or augmented)
+            if aug_mapper is not None and budget_wrapper is not None:
+                q_idx = aug_mapper.encode(state, budget_wrapper.budget)
+            else:
+                q_idx = state
+
+            if not (0 <= q_idx < q_table.shape[0]):
+                print(f"ERROR: Invalid q_idx {q_idx} during evaluation (Episode {episode_idx}).")
                 terminated = True
                 done = True
-                reward = 0.0  # Ensure reward is non-positive on error
+                reward = 0.0
                 break
-            action = int(np.argmax(q_table[state]))
+            action = int(np.argmax(q_table[q_idx]))
             try:
                 next_state, reward, terminated, truncated, info = env.step(action)
                 done = terminated or truncated
@@ -126,7 +146,7 @@ def evaluate_agent(env, q_table, max_steps, eval_episodes=config.EVAL_EPISODES):
                 print(f"ERROR during evaluation step: {err} (Episode {episode_idx}).")
                 terminated = True
                 done = True
-                reward = 0.0  # Ensure reward is non-positive on error
+                reward = 0.0
                 break
             episode_undiscounted_return += reward
             state = next_state
@@ -148,14 +168,27 @@ def evaluate_agent(env, q_table, max_steps, eval_episodes=config.EVAL_EPISODES):
     return success_rate, avg_undiscounted_return, avg_discounted_return, avg_steps_success, avg_steps_failure
 
 
-def get_policy_grid_from_q_table(q_table, size, holes, goal):
-    """ Generates a grid representation of the greedy policy derived from a Q-table. """
+def get_policy_grid_from_q_table(q_table, size, holes, goal, aug_mapper=None):
+    """
+    Generates a grid representation of the greedy policy derived from a Q-table.
+
+    aug_mapper: optional AugmentedStateMapper. When provided, the policy is extracted
+                for budget=max_budget (full budget slice).
+    """
     policy_grid_rows = []
     try:
         terminals = set(holes) | {goal}
         action_chars = {0: 'L', 1: 'D', 2: 'R', 3: 'U',
                         4: 'L*', 5: 'D*', 6: 'R*', 7: 'U*'}  # * = no-slip
-        num_states = q_table.shape[0]
+
+        # Extract the relevant slice of the Q-table (budget=max if augmented)
+        if aug_mapper is not None:
+            flat_q = aug_mapper.slice_for_budget(q_table, aug_mapper.max_budget)
+            num_states = aug_mapper.state_size
+        else:
+            flat_q = q_table
+            num_states = q_table.shape[0]
+
         if num_states != size * size:
             print(f"ERROR: Q-table size {num_states} doesn't match grid {size}x{size}.")
             return []
@@ -170,7 +203,7 @@ def get_policy_grid_from_q_table(q_table, size, holes, goal):
                         print(f"WARN: State {state} out of Q-table bounds during policy gen.")
                         row_str += "?"
                         continue
-                    best_action = np.argmax(q_table[state])
+                    best_action = np.argmax(flat_q[state])
                     best_action_char = action_chars.get(best_action, '?')
                     row_str += best_action_char
             policy_grid_rows.append(row_str)
@@ -180,7 +213,7 @@ def get_policy_grid_from_q_table(q_table, size, holes, goal):
     return policy_grid_rows
 
 
-def visualize_policy(q_table, size, holes, goal, title="Greedy Policy", save_path=None):
+def visualize_policy(q_table, size, holes, goal, title="Greedy Policy", save_path=None, aug_mapper=None):
     """
     Visualise la politique greedy issue de la Q-table.
     - Toutes les cases : gris clair
@@ -189,9 +222,18 @@ def visualize_policy(q_table, size, holes, goal, title="Greedy Policy", save_pat
     - Goal             : vert, étoile blanche
     - Flèches normales (actions 0-3) : noires
     - Flèches no-slip  (actions 4-7) : oranges
+
+    aug_mapper: optional AugmentedStateMapper. When provided, visualises the
+                policy for budget=max_budget (full budget slice).
     """
     action_arrows = {0: '←', 1: '↓', 2: '→', 3: '↑',
                      4: '←', 5: '↓', 6: '→', 7: '↑'}
+
+    # Extract the flat Q-table slice to use for visualisation
+    if aug_mapper is not None:
+        flat_q = aug_mapper.slice_for_budget(q_table, aug_mapper.max_budget)
+    else:
+        flat_q = q_table
 
     fig, ax = plt.subplots(figsize=(size * 1.5, size * 1.5))
     hole_set = set(holes)
@@ -224,7 +266,7 @@ def visualize_policy(q_table, size, holes, goal, title="Greedy Policy", save_pat
                         ha='center', va='center', fontsize=20,
                         color='white', fontweight='bold')
             else:
-                best_action = int(np.argmax(q_table[state]))
+                best_action = int(np.argmax(flat_q[state]))
                 text = action_arrows.get(best_action, '?')
                 # Couleur de la flèche selon slip ou no-slip
                 if best_action >= 4:

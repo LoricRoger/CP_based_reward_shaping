@@ -120,6 +120,8 @@ def main():
         agent_log_name = f"q_{args.shaping}"
         if args.budget > 0:
             agent_log_name += f"_b{args.budget}_{args.noslip_strategy}"
+    elif args.agent == 'cp_greedy' and args.budget > 0:
+        agent_log_name = f"cp_greedy_b{args.budget}"
     n_eps = args.episodes if args.agent == 'q' else config.EVAL_EPISODES
     run_name = f"{agent_log_name}_{instance_id}_{n_eps}eps_seed{current_seed}_{timestamp}"
 
@@ -239,7 +241,7 @@ def main():
         if args.agent == 'cp_greedy':
             final_evaluations = heuristic_agents.run_cp_ms_greedy_agent(env, cp_client, config.EVAL_EPISODES,
                                                                         max_steps_config, size, env.action_space.n,
-                                                                        instance_id)
+                                                                        instance_id, budget=args.budget)
             utils.save_results_log({'episode_log': [], 'evaluation_log': final_evaluations}, log_file)
             _cleanup_cp(java_process, cp_client)
 
@@ -283,12 +285,17 @@ def _run_q_learning_session(env, train_fn, args, max_steps_config, log_file,
                             java_stdout_log=None, java_stderr_log=None,
                             size=None, holes=None, goal=None,
                             verbose=0, run_dir=None, logger=None):
-    q_table, episodes, evaluations = None, [], []
+    q_table, episodes, evaluations, aug_mapper = None, [], [], None
     start_time = time.time()
     try:
         vprint(f"Starting Q-learning: {args.episodes} episodes | shaping={args.shaping}",
                verbose, min_level=1, logger=logger)
-        q_table, episodes, evaluations = train_fn(env, args.episodes, max_steps_config)
+        result = train_fn(env, args.episodes, max_steps_config)
+        # CP training returns (q_table, episodes, evaluations, aug_mapper); standard returns (q_table, episodes, evaluations)
+        if len(result) == 4:
+            q_table, episodes, evaluations, aug_mapper = result
+        else:
+            q_table, episodes, evaluations = result
     except Exception as e:
         tqdm.write(f"ERROR during training: {e}")
         import traceback
@@ -317,7 +324,8 @@ def _run_q_learning_session(env, train_fn, args, max_steps_config, log_file,
             utils.visualize_policy(
                 q_table, size, holes, goal,
                 title=f"Politique finale — {policy_label} ({args.instance})",
-                save_path=os.path.join(plots_dir, "policy.png")
+                save_path=os.path.join(plots_dir, "policy.png"),
+                aug_mapper=aug_mapper,
             )
     except Exception as e:
         tqdm.write(f"Error generating plots: {e}")
