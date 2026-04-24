@@ -31,8 +31,10 @@ Cache:
 
 import argparse
 import contextlib
+import io
 import json
 import math
+import os
 import queue
 import random
 import socket
@@ -132,12 +134,24 @@ def _run_instrumented(inst_cfg: dict, total_episodes: int, cp_client) -> list[di
     map_name = inst_cfg.get("map_name", f"{size}x{size}")
     desc = inst_cfg.get("desc", None)
 
-    import io
-    with contextlib.redirect_stdout(io.StringIO()):
-        env = environment.create_environment(
-            map_name=map_name, is_slippery=slippery,
-            render_mode=None, desired_max_steps=max_steps, desc=desc, budget=0
-        )
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        # Aussi fermer les FDs C-level pour supprimer les prints gymnasium (ex. TimeLimit)
+        devnull_fd = os.open(os.devnull, os.O_WRONLY)
+        saved_stdout_fd = os.dup(1)
+        saved_stderr_fd = os.dup(2)
+        os.dup2(devnull_fd, 1)
+        os.dup2(devnull_fd, 2)
+        try:
+            env = environment.create_environment(
+                map_name=map_name, is_slippery=slippery,
+                render_mode=None, desired_max_steps=max_steps, desc=desc, budget=0
+            )
+        finally:
+            os.dup2(saved_stdout_fd, 1)
+            os.dup2(saved_stderr_fd, 2)
+            os.close(saved_stdout_fd)
+            os.close(saved_stderr_fd)
+            os.close(devnull_fd)
     if env is None:
         raise RuntimeError("Impossible de créer l'environnement.")
 
@@ -530,87 +544,88 @@ def run_all(instances_cfg: dict, instance_ids: list[str], nb_steps_list: list[in
     # Allouer workers ports libres dynamiquement. Bench et perf sont séquentiels
     # (d'abord tous les bench, puis tous les perf) donc un seul pool suffit.
     all_free_ports = _find_free_ports(workers)
-    bench_port_pool: queue.Queue[int] = queue.Queue()
-    perf_port_pool: queue.Queue[int] = queue.Queue()
+    port_pool: queue.Queue[int] = queue.Queue()
     for p in all_free_ports:
-        bench_port_pool.put(p)
-        perf_port_pool.put(p)
+        port_pool.put(p)
     print(f"  Ports : {all_free_ports}\n")
 
-    pbar = tqdm(total=total, desc="Progress", unit="run", dynamic_ncols=True, leave=True)
-
-    # Précharger les runs en cache
+    # Index global sur tous les runs (bench + perf entremêlés inst×steps×seed)
+    w = len(str(total))
+    idx = 0
     skipped = 0
-    pending_bench = []
+    pending_bench = []  # (inst, nb_steps, seed, tag, global_idx)
     pending_perf = []
 
-    for status, inst, nb_steps, seed, data in bench_runs:
-        if status == "skip":
-            bench_entries.append(data)
+    # bench_runs et perf_runs sont alignés index-à-index (même ordre inst/steps/seed)
+    for (bs, b_inst, b_steps, b_seed, b_data), (ps, p_inst, p_steps, p_seed, p_data) in zip(bench_runs, perf_runs):
+        idx += 1
+        b_tag = f"[{idx:{w}}/{total}] {b_inst:<10} bench  steps={b_steps:<4} seed={b_seed}"
+        if bs == "skip":
+            tqdm.write(f"{b_tag}  --> SKIP  (cached)")
+            bench_entries.append(b_data)
             skipped += 1
-            pbar.update(1)
         else:
-            pending_bench.append((inst, nb_steps, seed))
+            pending_bench.append((b_inst, b_steps, b_seed, b_tag))
 
-    for status, inst, nb_steps, seed, data in perf_runs:
-        if status == "skip":
-            perf_entries.append(data)
+        idx += 1
+        p_tag = f"[{idx:{w}}/{total}] {p_inst:<10} perf   steps={p_steps:<4} seed={p_seed}"
+        if ps == "skip":
+            tqdm.write(f"{p_tag}  --> SKIP  (cached)")
+            perf_entries.append(p_data)
             skipped += 1
-            pbar.update(1)
         else:
-            pending_perf.append((inst, nb_steps, seed))
+            pending_perf.append((p_inst, p_steps, p_seed, p_tag))
 
-    def _worker_bench(inst, nb_steps, seed):
-        port = bench_port_pool.get()
+    pbar = tqdm(total=total, initial=skipped, desc="Progress",
+                unit="run", dynamic_ncols=True, leave=True)
+
+    def _worker_bench(inst, nb_steps, seed, tag):
+        port = port_pool.get()
         try:
-            tag = f"bench {inst} steps={nb_steps} seed={seed}"
             with print_lock:
-                tqdm.write(f"  [RUN]   {tag}")
+                tqdm.write(f"{tag}  --> running ...")
             entry = _run_bench_one(inst, instances_cfg[inst], nb_steps, seed,
                                    bench_episodes, output_dir, port, no_compile)
             if entry is not None:
                 _save_cache(output_dir, inst, nb_steps, seed, bench_episodes, "bench", entry)
+                total_s = entry["stats"]["episode_total_s"]["mean"] * 1000
                 with print_lock:
-                    total_s = entry["stats"]["episode_total_s"]["mean"] * 1000
-                    tqdm.write(f"  [OK]    {tag}  → {total_s:.2f} ms/ep")
+                    tqdm.write(f"{tag}  --> OK  ({total_s:.2f} ms/ep)")
             else:
                 with print_lock:
-                    tqdm.write(f"  [ERROR] {tag}")
+                    tqdm.write(f"{tag}  --> ERROR")
             pbar.update(1)
             return entry
         finally:
-            bench_port_pool.put(port)
+            port_pool.put(port)
 
-    def _worker_perf(inst, nb_steps, seed):
-        port = perf_port_pool.get()
+    def _worker_perf(inst, nb_steps, seed, tag):
+        port = port_pool.get()
         try:
-            tag = f"perf  {inst} steps={nb_steps} seed={seed}"
             with print_lock:
-                tqdm.write(f"  [RUN]   {tag}")
+                tqdm.write(f"{tag}  --> running ...")
             entry = _run_perf_one(inst, nb_steps, seed, perf_episodes,
                                   port, no_compile, print_lock)
             if entry is not None:
                 _save_cache(output_dir, inst, nb_steps, seed, perf_episodes, "perf", entry)
                 with print_lock:
-                    tqdm.write(f"  [OK]    {tag}  → SR={entry['final_sr']:.3f}")
+                    tqdm.write(f"{tag}  --> OK  (SR={entry['final_sr']:.3f})")
             else:
                 with print_lock:
-                    tqdm.write(f"  [ERROR] {tag}")
+                    tqdm.write(f"{tag}  --> ERROR")
             pbar.update(1)
             return entry
         finally:
-            perf_port_pool.put(port)
+            port_pool.put(port)
 
-    def _run_phase(tasks, worker_fn, result_list, phase_name):
-        """Lance une liste de tâches en parallèle avec workers workers."""
+    def _run_phase(tasks, worker_fn, result_list):
+        """Lance une liste de tâches (avec tag pré-calculé) en parallèle."""
         if not tasks:
             return
-        with print_lock:
-            tqdm.write(f"\n  --- Phase {phase_name} ({len(tasks)} runs) ---")
         if workers > 1:
             with ThreadPoolExecutor(max_workers=workers) as executor:
-                futures = {executor.submit(worker_fn, inst, nb_steps, seed): (inst, nb_steps, seed)
-                           for inst, nb_steps, seed in tasks}
+                futures = {executor.submit(worker_fn, inst, nb_steps, seed, tag): (inst, nb_steps, seed)
+                           for inst, nb_steps, seed, tag in tasks}
                 for future in as_completed(futures):
                     try:
                         entry = future.result()
@@ -620,14 +635,14 @@ def run_all(instances_cfg: dict, instance_ids: list[str], nb_steps_list: list[in
                         with print_lock:
                             tqdm.write(f"  [ERROR] future: {exc}")
         else:
-            for inst, nb_steps, seed in tasks:
-                entry = worker_fn(inst, nb_steps, seed)
+            for inst, nb_steps, seed, tag in tasks:
+                entry = worker_fn(inst, nb_steps, seed, tag)
                 if entry is not None:
                     result_list.append(entry)
 
     # Phase 1 : bench (timing) — tous les runs, puis phase 2 : perf (SR)
-    _run_phase(pending_bench, _worker_bench, bench_entries, "BENCH (timing)")
-    _run_phase(pending_perf, _worker_perf, perf_entries, "PERF (success rate)")
+    _run_phase(pending_bench, _worker_bench, bench_entries)
+    _run_phase(pending_perf, _worker_perf, perf_entries)
 
     pbar.close()
     return bench_entries, perf_entries

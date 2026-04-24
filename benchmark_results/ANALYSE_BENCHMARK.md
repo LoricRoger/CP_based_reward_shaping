@@ -1,6 +1,6 @@
 # Analyse de performance — CP reward shaping
 
-Date de mise à jour : 2026-04-23
+Date de mise à jour : 2026-04-24
 Branche : `feat/benchmark`
 Outil : `run_benchmark.py`
 
@@ -149,7 +149,7 @@ makeSolver/Vars : ~0.05 ms  →  négligeable
 
 ### Résultats nb_steps : tradeoff timing / success rate
 
-Benchmark `run_nbsteps_benchmark.py` : timing sur 2 000 épisodes, SR final sur 10 000 épisodes.
+Benchmark `run_nbsteps_benchmark.py` : timing sur 2 000 épisodes (4×4) / 500 épisodes (8×8), SR final sur 10 000 épisodes (4×4) / 5 000 épisodes (8×8).
 
 **Instance 4s** (réf. 110 steps = 45.3 ms, SR=73.5%)
 
@@ -184,14 +184,54 @@ Benchmark `run_nbsteps_benchmark.py` : timing sur 2 000 épisodes, SR final sur 
 | 50 | 18.8 ± 0.5 | ×2.5 | 31.4 ± 5.7 |
 | 110 | 46.1 ± 1.0 | ×1.0 | 36.5 ± 4.8 |
 
+**Instance 8s** (réf. 220 steps = 2 377 ms, SR=87.8%)
+
+| cp_nbSteps | Timing (ms/ep) | Speedup vs 220 | SR final (%) |
+|-----------|---------------|----------------|-------------|
+| 20 | 44.8 ± 2.9 | **×53** | 26.2 ± 29.2 |
+| 40 | 129.1 ± 6.5 | **×18** | 86.2 ± 6.0 |
+| 60 | 277.7 ± 6.6 | ×8.6 | 85.2 ± 13.2 |
+| 80 | 469.3 ± 13.7 | ×5.1 | 87.8 ± 2.6 |
+| 110 | 795.2 ± 43.3 | ×3.0 | 87.8 ± 3.9 |
+| 220 | 2 377 ± 340 | ×1.0 | — |
+
+**Instance 8medium** (réf. 220 steps = 1 849 ms)
+
+| cp_nbSteps | Timing (ms/ep) | Speedup vs 220 | SR final (%) |
+|-----------|---------------|----------------|-------------|
+| 20 | 27.4 ± 1.4 | **×67** | 16.8 ± 12.7 |
+| 40 | 120.0 ± 12.1 | **×15** | 60.2 ± 5.7 |
+| 60 | 238.8 ± 11.5 | ×7.7 | 82.6 ± 4.5 |
+| 80 | 352.4 ± 25.1 | ×5.3 | 80.6 ± 7.1 |
+| 110 | 627.3 ± 64.3 | ×2.9 | — |
+| 220 | 1 849 ± 144 | ×1.0 | — |
+
+**Instance 8hard** (réf. 220 steps = 1 311 ms)
+
+| cp_nbSteps | Timing (ms/ep) | Speedup vs 220 | SR final (%) |
+|-----------|---------------|----------------|-------------|
+| 20 | 32.3 ± 2.1 | **×41** | 12.4 ± 3.9 |
+| 40 | 115.6 ± 4.5 | **×11** | 58.6 ± 11.6 |
+| 60 | 221.4 ± 12.3 | ×5.9 | 63.4 ± 7.9 |
+| 80 | 373.1 ± 10.9 | ×3.5 | 64.8 ± 5.6 |
+| 110 | 532.8 ± 31.6 | ×2.5 | — |
+| 220 | 1 311 ± 97 | ×1.0 | — |
+
 **Conclusions nb_steps :**
 
 - Sur **4s et 4medium** : `cp_nbSteps=20` donne ~×6 de speedup **sans perte de SR**
   (SR identique ou dans la variance de 110). Recommandation : **utiliser 20 par défaut**.
 - Sur **4hard** : la SR chute significativement sous 30 steps (29% vs 36.5% à 110).
   L'instance difficile nécessite un horizon plus long. Recommandation : **30–40 minimum**.
+- Sur **8s** : `cp_nbSteps=40` donne ×18 de speedup avec SR préservée (86.2% vs 87.8% à 220).
+  `cp_nbSteps=20` effondre la SR (26%). Recommandation : **40 minimum**.
+- Sur **8medium** : `cp_nbSteps=60` est le seuil critique — 82.6% de SR vs 16.8% à 20 et 60.2% à 40.
+  Recommandation : **60 minimum** (×7.7 de speedup).
+- Sur **8hard** : SR plafonne à ~64% dès cp_nbSteps=60 (vs 58.6% à 40). Recommandation : **60**.
 - Le timing n'est pas parfaitement linéaire en nb_steps (saut entre 20→30 sur 4s/4hard),
   ce qui suggère un overhead fixe par épisode indépendant du nombre de steps.
+- La variance SR en 8×8 est nettement plus élevée qu'en 4×4 (std jusqu'à 29% sur 8s/20 steps),
+  conséquence d'un nombre de seeds limité (5) et d'une sensibilité accrue à l'initialisation.
 
 ---
 
@@ -218,16 +258,14 @@ Benchmark `run_nbsteps_benchmark.py` : timing sur 2 000 épisodes, SR final sur 
 
 ## 3. Ce qu'il faudrait tester ensuite (par priorité)
 
-### A — Impact de `cp_nbSteps` ✅ FAIT
+### A — Impact de `cp_nbSteps` ✅ FAIT (4×4 + 8×8)
 
 Résultats disponibles dans `nbsteps_results/`. Voir tableau complet ci-dessus.
 
 **Recommandations issues du benchmark :**
-- `cp_nbSteps=20` est le bon compromis sur **4s et 4medium** (×6 speedup, SR préservé)
-- `cp_nbSteps=30` minimum sur **4hard** (SR chute significativement en dessous)
-- Pour 8×8 : à tester — si la structure tient, recommandation probable : 40–60
-
-**Restant :** valider sur instances 8×8 avec le même protocole.
+- 4×4 : `cp_nbSteps=20` sur **4s et 4medium** (×6 speedup, SR préservé) ; **30–40 minimum** sur **4hard**
+- 8×8 : **40 minimum** sur **8s** ; **60 minimum** sur **8medium et 8hard**
+- La structure tient : seuil minimal différent selon la difficulté de l'instance, mais identifiable clairement
 
 ### B — Déplacer fixPoint de STEP vers QUERY_ETR ❌ TESTÉ — INEFFICACE
 
@@ -259,14 +297,13 @@ une repropagation complète au prochain fixPoint. Déplacer le fixPoint ne l'év
 
 **Conclusion : l'optimisation B n'apporte pas de gain. Branche fermée sans merge.**
 
-### C — Mesurer sur instances 8×8 ✅ FAIT (500 épisodes)
+### C — Mesurer sur instances 8×8 ✅ FAIT (500 épisodes bench, 5 000 perf)
 
-Résultats : ~1 250–2 200 ms/épisode selon l'instance (×2 300–×6 600 vs q-none).
+Résultats : ~1 250–2 400 ms/épisode à cp_nbSteps=220 selon l'instance (×2 300–×6 600 vs q-none).
 Le coût réel 4×4→8×8 est ×40–50 (supra-linéaire, pas ×8 comme attendu).
 
-**Restant :** si optimisation B est validée, relancer sur 8×8 avec plus d'épisodes
-pour mesurer l'impact concret sur la SR (10 000 épisodes ≈ 4–6h/run sans optim,
-~40–60 min avec cp_nbSteps=40).
+Avec `cp_nbSteps=40–60`, le timing tombe à **115–280 ms/épisode** sur 8×8, soit
+~10–25 min pour 5 000 épisodes — un budget temps raisonnable pour des runs complets.
 
 ### D — Fusionner STEP + QUERY_ETR en une commande (priorité basse, modif Java + Python)
 
@@ -292,8 +329,9 @@ benchmark_results/
     └── op_breakdown_*.png       # fraction du temps par opération
 
 nbsteps_results/
-├── cache/                 # bench (2k eps) + perf (10k eps) pour chaque (inst, steps, seed)
-│                          # 4s/4medium/4hard × steps={10,20,30,40,50,110}
+├── cache/                 # bench + perf pour chaque (inst, steps, seed)
+│                          # 4s/4medium/4hard × steps={10,20,30,40,50,110} (bench 2k, perf 10k)
+│                          # 8s/8medium/8hard × steps={20,40,60,80,110,220} (bench 500, perf 5k)
 └── plots/
     ├── timing_vs_nbsteps_*.png  # timing moyen par cp_nbSteps
     ├── sr_vs_nbsteps_*.png      # success rate final par cp_nbSteps

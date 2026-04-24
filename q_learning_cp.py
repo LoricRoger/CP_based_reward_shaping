@@ -62,7 +62,6 @@ class CPRewardClient:
             if welcome.startswith("OK Welcome"):
                 self.socket = sock
                 self.is_connected = True
-                print(f"Connected to CP server at {self.host}:{self.port}")
                 return True
             sock.close()
             print(f"ERROR: Unexpected welcome from CP server: '{welcome}'")
