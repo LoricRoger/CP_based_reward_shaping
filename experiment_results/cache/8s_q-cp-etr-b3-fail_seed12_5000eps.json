@@ -1,0 +1,4006 @@
+{
+  "eval_log": [
+    {
+      "training_episode": 10,
+      "eval_success_rate": 0.0,
+      "eval_avg_return": 0.0,
+      "eval_avg_discounted_return": 0.0,
+      "avg_steps_success": 0.0,
+      "avg_steps_failure": 77.0
+    },
+    {
+      "training_episode": 20,
+      "eval_success_rate": 0.0,
+      "eval_avg_return": 0.0,
+      "eval_avg_discounted_return": 0.0,
+      "avg_steps_success": 0.0,
+      "avg_steps_failure": 57.75
+    },
+    {
+      "training_episode": 30,
+      "eval_success_rate": 0.0,
+      "eval_avg_return": 0.0,
+      "eval_avg_discounted_return": 0.0,
+      "avg_steps_success": 0.0,
+      "avg_steps_failure": 45.51
+    },
+    {
+      "training_episode": 40,
+      "eval_success_rate": 0.0,
+      "eval_avg_return": 0.0,
+      "eval_avg_discounted_return": 0.0,
+      "avg_steps_success": 0.0,
+      "avg_steps_failure": 39.65
+    },
+    {
+      "training_episode": 50,
+      "eval_success_rate": 0.0,
+      "eval_avg_return": 0.0,
+      "eval_avg_discounted_return": 0.0,
+      "avg_steps_success": 0.0,
+      "avg_steps_failure": 53.63
+    },
+    {
+      "training_episode": 60,
+      "eval_success_rate": 0.0,
+      "eval_avg_return": 0.0,
+      "eval_avg_discounted_return": 0.0,
+      "avg_steps_success": 0.0,
+      "avg_steps_failure": 44.37
+    },
+    {
+      "training_episode": 70,
+      "eval_success_rate": 0.02,
+      "eval_avg_return": 0.02,
+      "eval_avg_discounted_return": 0.011764454439378094,
+      "avg_steps_success": 109.5,
+      "avg_steps_failure": 77.87755102040816
+    },
+    {
+      "training_episode": 80,
+      "eval_success_rate": 0.0,
+      "eval_avg_return": 0.0,
+      "eval_avg_discounted_return": 0.0,
+      "avg_steps_success": 0.0,
+      "avg_steps_failure": 40.31
+    },
+    {
+      "training_episode": 90,
+      "eval_success_rate": 0.0,
+      "eval_avg_return": 0.0,
+      "eval_avg_discounted_return": 0.0,
+      "avg_steps_success": 0.0,
+      "avg_steps_failure": 32.15
+    },
+    {
+      "training_episode": 100,
+      "eval_success_rate": 0.02,
+      "eval_avg_return": 0.02,
+      "eval_avg_discounted_return": 0.017139071117565526,
+      "avg_steps_success": 32.0,
+      "avg_steps_failure": 27.29591836734694
+    },
+    {
+      "training_episode": 110,
+      "eval_success_rate": 0.04,
+      "eval_avg_return": 0.04,
+      "eval_avg_discounted_return": 0.03199146639477832,
+      "avg_steps_success": 47.25,
+      "avg_steps_failure": 36.927083333333336
+    },
+    {
+      "training_episode": 120,
+      "eval_success_rate": 0.06,
+      "eval_avg_return": 0.06,
+      "eval_avg_discounted_return": 0.047070670482067145,
+      "avg_steps_success": 50.166666666666664,
+      "avg_steps_failure": 38.723404255319146
+    },
+    {
+      "training_episode": 130,
+      "eval_success_rate": 0.02,
+      "eval_avg_return": 0.02,
+      "eval_avg_discounted_return": 0.016649660675699497,
+      "avg_steps_success": 38.0,
+      "avg_steps_failure": 26.806122448979593
+    },
+    {
+      "training_episode": 140,
+      "eval_success_rate": 0.01,
+      "eval_avg_return": 0.01,
+      "eval_avg_discounted_return": 0.00826565107974722,
+      "avg_steps_success": 39.0,
+      "avg_steps_failure": 26.464646464646464
+    },
+    {
+      "training_episode": 150,
+      "eval_success_rate": 0.02,
+      "eval_avg_return": 0.02,
+      "eval_avg_discounted_return": 0.016043334929645887,
+      "avg_steps_success": 45.0,
+      "avg_steps_failure": 32.265306122448976
+    },
+    {
+      "training_episode": 160,
+      "eval_success_rate": 0.01,
+      "eval_avg_return": 0.01,
+      "eval_avg_discounted_return": 0.00826565107974722,
+      "avg_steps_success": 39.0,
+      "avg_steps_failure": 38.56565656565657
+    },
+    {
+      "training_episode": 170,
+      "eval_success_rate": 0.01,
+      "eval_avg_return": 0.01,
+      "eval_avg_discounted_return": 0.007514768435208588,
+      "avg_steps_success": 58.0,
+      "avg_steps_failure": 36.36363636363637
+    },
+    {
+      "training_episode": 180,
+      "eval_success_rate": 0.01,
+      "eval_avg_return": 0.01,
+      "eval_avg_discounted_return": 0.008734200960253869,
+      "avg_steps_success": 28.0,
+      "avg_steps_failure": 44.82828282828283
+    },
+    {
+      "training_episode": 190,
+      "eval_success_rate": 0.03,
+      "eval_avg_return": 0.03,
+      "eval_avg_discounted_return": 0.022049668144093326,
+      "avg_steps_success": 64.0,
+      "avg_steps_failure": 49.54639175257732
+    },
+    {
+      "training_episode": 200,
+      "eval_success_rate": 0.07,
+      "eval_avg_return": 0.07,
+      "eval_avg_discounted_return": 0.0523510606491472,
+      "avg_steps_success": 61.142857142857146,
+      "avg_steps_failure": 49.39784946236559
+    },
+    {
+      "training_episode": 210,
+      "eval_success_rate": 0.03,
+      "eval_avg_return": 0.03,
+      "eval_avg_discounted_return": 0.021680527755291362,
+      "avg_steps_success": 67.66666666666667,
+      "avg_steps_failure": 53.71134020618557
+    },
+    {
+      "training_episode": 220,
+      "eval_success_rate": 0.08,
+      "eval_avg_return": 0.08,
+      "eval_avg_discounted_return": 0.06135560368317444,
+      "avg_steps_success": 55.5,
+      "avg_steps_failure": 43.01086956521739
+    },
+    {
+      "training_episode": 230,
+      "eval_success_rate": 0.01,
+      "eval_avg_return": 0.01,
+      "eval_avg_discounted_return": 0.008647077305675337,
+      "avg_steps_success": 30.0,
+      "avg_steps_failure": 39.74747474747475
+    },
+    {
+      "training_episode": 240,
+      "eval_success_rate": 0.03,
+      "eval_avg_return": 0.03,
+      "eval_avg_discounted_return": 0.02441713665098715,
+      "avg_steps_success": 43.0,
+      "avg_steps_failure": 45.70103092783505
+    },
+    {
+      "training_episode": 250,
+      "eval_success_rate": 0.04,
+      "eval_avg_return": 0.04,
+      "eval_avg_discounted_return": 0.03055286573198221,
+      "avg_steps_success": 55.75,
+      "avg_steps_failure": 39.625
+    },
+    {
+      "training_episode": 260,
+      "eval_success_rate": 0.08,
+      "eval_avg_return": 0.08,
+      "eval_avg_discounted_return": 0.06204711657055106,
+      "avg_steps_success": 52.5,
+      "avg_steps_failure": 51.33695652173913
+    },
+    {
+      "training_episode": 270,
+      "eval_success_rate": 0.07,
+      "eval_avg_return": 0.07,
+      "eval_avg_discounted_return": 0.053910233914574786,
+      "avg_steps_success": 55.42857142857143,
+      "avg_steps_failure": 69.52688172043011
+    },
+    {
+      "training_episode": 280,
+      "eval_success_rate": 0.08,
+      "eval_avg_return": 0.08,
+      "eval_avg_discounted_return": 0.05843520737664761,
+      "avg_steps_success": 65.25,
+      "avg_steps_failure": 50.619565217391305
+    },
+    {
+      "training_episode": 290,
+      "eval_success_rate": 0.11,
+      "eval_avg_return": 0.11,
+      "eval_avg_discounted_return": 0.07849471754715141,
+      "avg_steps_success": 71.54545454545455,
+      "avg_steps_failure": 48.03370786516854
+    },
+    {
+      "training_episode": 300,
+      "eval_success_rate": 0.12,
+      "eval_avg_return": 0.12,
+      "eval_avg_discounted_return": 0.0915644652702527,
+      "avg_steps_success": 56.5,
+      "avg_steps_failure": 57.69318181818182
+    },
+    {
+      "training_episode": 310,
+      "eval_success_rate": 0.12,
+      "eval_avg_return": 0.12,
+      "eval_avg_discounted_return": 0.08434042741752984,
+      "avg_steps_success": 75.33333333333333,
+      "avg_steps_failure": 53.21590909090909
+    },
+    {
+      "training_episode": 320,
+      "eval_success_rate": 0.11,
+      "eval_avg_return": 0.11,
+      "eval_avg_discounted_return": 0.0780919264298449,
+      "avg_steps_success": 71.9090909090909,
+      "avg_steps_failure": 61.438202247191015
+    },
+    {
+      "training_episode": 330,
+      "eval_success_rate": 0.17,
+      "eval_avg_return": 0.17,
+      "eval_avg_discounted_return": 0.11602522372140552,
+      "avg_steps_success": 79.6470588235294,
+      "avg_steps_failure": 59.98795180722892
+    },
+    {
+      "training_episode": 340,
+      "eval_success_rate": 0.12,
+      "eval_avg_return": 0.12,
+      "eval_avg_discounted_return": 0.09408309320389113,
+      "avg_steps_success": 50.333333333333336,
+      "avg_steps_failure": 53.20454545454545
+    },
+    {
+      "training_episode": 350,
+      "eval_success_rate": 0.11,
+      "eval_avg_return": 0.11,
+      "eval_avg_discounted_return": 0.07196671561076168,
+      "avg_steps_success": 89.0,
+      "avg_steps_failure": 57.337078651685395
+    },
+    {
+      "training_episode": 360,
+      "eval_success_rate": 0.06,
+      "eval_avg_return": 0.06,
+      "eval_avg_discounted_return": 0.047019722778247834,
+      "avg_steps_success": 51.0,
+      "avg_steps_failure": 46.308510638297875
+    },
+    {
+      "training_episode": 370,
+      "eval_success_rate": 0.1,
+      "eval_avg_return": 0.1,
+      "eval_avg_discounted_return": 0.0748485071526767,
+      "avg_steps_success": 60.1,
+      "avg_steps_failure": 44.77777777777778
+    },
+    {
+      "training_episode": 380,
+      "eval_success_rate": 0.04,
+      "eval_avg_return": 0.04,
+      "eval_avg_discounted_return": 0.029048829552948803,
+      "avg_steps_success": 66.5,
+      "avg_steps_failure": 43.197916666666664
+    },
+    {
+      "training_episode": 390,
+      "eval_success_rate": 0.08,
+      "eval_avg_return": 0.08,
+      "eval_avg_discounted_return": 0.05533386391336889,
+      "avg_steps_success": 76.375,
+      "avg_steps_failure": 54.01086956521739
+    },
+    {
+      "training_episode": 400,
+      "eval_success_rate": 0.03,
+      "eval_avg_return": 0.03,
+      "eval_avg_discounted_return": 0.023656395519429278,
+      "avg_steps_success": 48.666666666666664,
+      "avg_steps_failure": 46.97938144329897
+    },
+    {
+      "training_episode": 410,
+      "eval_success_rate": 0.12,
+      "eval_avg_return": 0.12,
+      "eval_avg_discounted_return": 0.09674789446834753,
+      "avg_steps_success": 44.916666666666664,
+      "avg_steps_failure": 44.25
+    },
+    {
+      "training_episode": 420,
+      "eval_success_rate": 0.04,
+      "eval_avg_return": 0.04,
+      "eval_avg_discounted_return": 0.031221376007582017,
+      "avg_steps_success": 52.25,
+      "avg_steps_failure": 44.802083333333336
+    },
+    {
+      "training_episode": 430,
+      "eval_success_rate": 0.06,
+      "eval_avg_return": 0.06,
+      "eval_avg_discounted_return": 0.044303455110653214,
+      "avg_steps_success": 65.66666666666667,
+      "avg_steps_failure": 62.212765957446805
+    },
+    {
+      "training_episode": 440,
+      "eval_success_rate": 0.09,
+      "eval_avg_return": 0.09,
+      "eval_avg_discounted_return": 0.06521308309624332,
+      "avg_steps_success": 66.55555555555556,
+      "avg_steps_failure": 66.31868131868131
+    },
+    {
+      "training_episode": 450,
+      "eval_success_rate": 0.08,
+      "eval_avg_return": 0.08,
+      "eval_avg_discounted_return": 0.0658561845789145,
+      "avg_steps_success": 40.25,
+      "avg_steps_failure": 60.46739130434783
+    },
+    {
+      "training_episode": 460,
+      "eval_success_rate": 0.15,
+      "eval_avg_return": 0.15,
+      "eval_avg_discounted_return": 0.10672758628467326,
+      "avg_steps_success": 70.66666666666667,
+      "avg_steps_failure": 57.50588235294118
+    },
+    {
+      "training_episode": 470,
+      "eval_success_rate": 0.19,
+      "eval_avg_return": 0.19,
+      "eval_avg_discounted_return": 0.1410803774406813,
+      "avg_steps_success": 63.473684210526315,
+      "avg_steps_failure": 52.592592592592595
+    },
+    {
+      "training_episode": 480,
+      "eval_success_rate": 0.1,
+      "eval_avg_return": 0.1,
+      "eval_avg_discounted_return": 0.07662150239811985,
+      "avg_steps_success": 55.7,
+      "avg_steps_failure": 57.51111111111111
+    },
+    {
+      "training_episode": 490,
+      "eval_success_rate": 0.08,
+      "eval_avg_return": 0.08,
+      "eval_avg_discounted_return": 0.05966931028850408,
+      "avg_steps_success": 60.25,
+      "avg_steps_failure": 60.26086956521739
+    },
+    {
+      "training_episode": 500,
+      "eval_success_rate": 0.09,
+      "eval_avg_return": 0.09,
+      "eval_avg_discounted_return": 0.06800984520877011,
+      "avg_steps_success": 58.55555555555556,
+      "avg_steps_failure": 56.934065934065934
+    },
+    {
+      "training_episode": 510,
+      "eval_success_rate": 0.07,
+      "eval_avg_return": 0.07,
+      "eval_avg_discounted_return": 0.04986188035538826,
+      "avg_steps_success": 69.85714285714286,
+      "avg_steps_failure": 63.69892473118279
+    },
+    {
+      "training_episode": 520,
+      "eval_success_rate": 0.1,
+      "eval_avg_return": 0.1,
+      "eval_avg_discounted_return": 0.0759521897109008,
+      "avg_steps_success": 57.8,
+      "avg_steps_failure": 61.84444444444444
+    },
+    {
+      "training_episode": 530,
+      "eval_success_rate": 0.04,
+      "eval_avg_return": 0.04,
+      "eval_avg_discounted_return": 0.02452898874921231,
+      "avg_steps_success": 103.25,
+      "avg_steps_failure": 104.46875
+    },
+    {
+      "training_episode": 540,
+      "eval_success_rate": 0.1,
+      "eval_avg_return": 0.1,
+      "eval_avg_discounted_return": 0.08082025064616039,
+      "avg_steps_success": 44.1,
+      "avg_steps_failure": 56.96666666666667
+    },
+    {
+      "training_episode": 550,
+      "eval_success_rate": 0.1,
+      "eval_avg_return": 0.1,
+      "eval_avg_discounted_return": 0.07261842369528393,
+      "avg_steps_success": 66.5,
+      "avg_steps_failure": 63.87777777777778
+    },
+    {
+      "training_episode": 560,
+      "eval_success_rate": 0.07,
+      "eval_avg_return": 0.07,
+      "eval_avg_discounted_return": 0.05181936540394072,
+      "avg_steps_success": 62.714285714285715,
+      "avg_steps_failure": 66.82795698924731
+    },
+    {
+      "training_episode": 570,
+      "eval_success_rate": 0.14,
+      "eval_avg_return": 0.14,
+      "eval_avg_discounted_return": 0.10879786592207964,
+      "avg_steps_success": 51.92857142857143,
+      "avg_steps_failure": 57.03488372093023
+    },
+    {
+      "training_episode": 580,
+      "eval_success_rate": 0.13,
+      "eval_avg_return": 0.13,
+      "eval_avg_discounted_return": 0.09284233797435397,
+      "avg_steps_success": 71.0,
+      "avg_steps_failure": 57.252873563218394
+    },
+    {
+      "training_episode": 590,
+      "eval_success_rate": 0.1,
+      "eval_avg_return": 0.1,
+      "eval_avg_discounted_return": 0.07218784644515577,
+      "avg_steps_success": 69.9,
+      "avg_steps_failure": 59.71111111111111
+    },
+    {
+      "training_episode": 600,
+      "eval_success_rate": 0.06,
+      "eval_avg_return": 0.06,
+      "eval_avg_discounted_return": 0.04219246416117129,
+      "avg_steps_success": 71.66666666666667,
+      "avg_steps_failure": 88.35106382978724
+    },
+    {
+      "training_episode": 610,
+      "eval_success_rate": 0.07,
+      "eval_avg_return": 0.07,
+      "eval_avg_discounted_return": 0.05587318935458016,
+      "avg_steps_success": 48.142857142857146,
+      "avg_steps_failure": 63.924731182795696
+    },
+    {
+      "training_episode": 620,
+      "eval_success_rate": 0.13,
+      "eval_avg_return": 0.13,
+      "eval_avg_discounted_return": 0.10044266846959607,
+      "avg_steps_success": 54.15384615384615,
+      "avg_steps_failure": 64.03448275862068
+    },
+    {
+      "training_episode": 630,
+      "eval_success_rate": 0.06,
+      "eval_avg_return": 0.06,
+      "eval_avg_discounted_return": 0.03679541276569586,
+      "avg_steps_success": 106.0,
+      "avg_steps_failure": 74.52127659574468
+    },
+    {
+      "training_episode": 640,
+      "eval_success_rate": 0.1,
+      "eval_avg_return": 0.1,
+      "eval_avg_discounted_return": 0.07842709735748903,
+      "avg_steps_success": 51.1,
+      "avg_steps_failure": 78.5
+    },
+    {
+      "training_episode": 650,
+      "eval_success_rate": 0.08,
+      "eval_avg_return": 0.08,
+      "eval_avg_discounted_return": 0.05846543518259579,
+      "avg_steps_success": 65.375,
+      "avg_steps_failure": 80.78260869565217
+    },
+    {
+      "training_episode": 660,
+      "eval_success_rate": 0.11,
+      "eval_avg_return": 0.11,
+      "eval_avg_discounted_return": 0.06622901173880537,
+      "avg_steps_success": 105.54545454545455,
+      "avg_steps_failure": 81.1685393258427
+    },
+    {
+      "training_episode": 670,
+      "eval_success_rate": 0.1,
+      "eval_avg_return": 0.1,
+      "eval_avg_discounted_return": 0.06870094696582876,
+      "avg_steps_success": 81.6,
+      "avg_steps_failure": 81.52222222222223
+    },
+    {
+      "training_episode": 680,
+      "eval_success_rate": 0.14,
+      "eval_avg_return": 0.14,
+      "eval_avg_discounted_return": 0.0975942157773793,
+      "avg_steps_success": 76.28571428571429,
+      "avg_steps_failure": 59.674418604651166
+    },
+    {
+      "training_episode": 690,
+      "eval_success_rate": 0.07,
+      "eval_avg_return": 0.07,
+      "eval_avg_discounted_return": 0.04806200475253455,
+      "avg_steps_success": 78.42857142857143,
+      "avg_steps_failure": 69.66666666666667
+    },
+    {
+      "training_episode": 700,
+      "eval_success_rate": 0.09,
+      "eval_avg_return": 0.09,
+      "eval_avg_discounted_return": 0.06802080296071761,
+      "avg_steps_success": 58.55555555555556,
+      "avg_steps_failure": 70.56043956043956
+    },
+    {
+      "training_episode": 710,
+      "eval_success_rate": 0.11,
+      "eval_avg_return": 0.11,
+      "eval_avg_discounted_return": 0.08264983870079032,
+      "avg_steps_success": 59.09090909090909,
+      "avg_steps_failure": 70.40449438202248
+    },
+    {
+      "training_episode": 720,
+      "eval_success_rate": 0.12,
+      "eval_avg_return": 0.12,
+      "eval_avg_discounted_return": 0.08631290929829687,
+      "avg_steps_success": 68.08333333333333,
+      "avg_steps_failure": 68.80681818181819
+    },
+    {
+      "training_episode": 730,
+      "eval_success_rate": 0.09,
+      "eval_avg_return": 0.09,
+      "eval_avg_discounted_return": 0.06333441530726804,
+      "avg_steps_success": 71.77777777777777,
+      "avg_steps_failure": 67.49450549450549
+    },
+    {
+      "training_episode": 740,
+      "eval_success_rate": 0.13,
+      "eval_avg_return": 0.13,
+      "eval_avg_discounted_return": 0.08933909728786184,
+      "avg_steps_success": 80.6923076923077,
+      "avg_steps_failure": 65.27586206896552
+    },
+    {
+      "training_episode": 750,
+      "eval_success_rate": 0.05,
+      "eval_avg_return": 0.05,
+      "eval_avg_discounted_return": 0.03434842538951718,
+      "avg_steps_success": 76.6,
+      "avg_steps_failure": 67.25263157894737
+    },
+    {
+      "training_episode": 760,
+      "eval_success_rate": 0.14,
+      "eval_avg_return": 0.14,
+      "eval_avg_discounted_return": 0.10608147200829747,
+      "avg_steps_success": 57.57142857142857,
+      "avg_steps_failure": 66.74418604651163
+    },
+    {
+      "training_episode": 770,
+      "eval_success_rate": 0.12,
+      "eval_avg_return": 0.12,
+      "eval_avg_discounted_return": 0.0925045111596571,
+      "avg_steps_success": 54.5,
+      "avg_steps_failure": 69.63636363636364
+    },
+    {
+      "training_episode": 780,
+      "eval_success_rate": 0.14,
+      "eval_avg_return": 0.14,
+      "eval_avg_discounted_return": 0.10128066595857764,
+      "avg_steps_success": 66.78571428571429,
+      "avg_steps_failure": 69.73255813953489
+    },
+    {
+      "training_episode": 790,
+      "eval_success_rate": 0.11,
+      "eval_avg_return": 0.11,
+      "eval_avg_discounted_return": 0.07647866419421773,
+      "avg_steps_success": 75.18181818181819,
+      "avg_steps_failure": 66.19101123595506
+    },
+    {
+      "training_episode": 800,
+      "eval_success_rate": 0.14,
+      "eval_avg_return": 0.14,
+      "eval_avg_discounted_return": 0.09693080294918968,
+      "avg_steps_success": 76.64285714285714,
+      "avg_steps_failure": 63.44186046511628
+    },
+    {
+      "training_episode": 810,
+      "eval_success_rate": 0.17,
+      "eval_avg_return": 0.17,
+      "eval_avg_discounted_return": 0.12134577716617674,
+      "avg_steps_success": 69.82352941176471,
+      "avg_steps_failure": 68.144578313253
+    },
+    {
+      "training_episode": 820,
+      "eval_success_rate": 0.27,
+      "eval_avg_return": 0.27,
+      "eval_avg_discounted_return": 0.19058421678070925,
+      "avg_steps_success": 73.18518518518519,
+      "avg_steps_failure": 72.28767123287672
+    },
+    {
+      "training_episode": 830,
+      "eval_success_rate": 0.23,
+      "eval_avg_return": 0.23,
+      "eval_avg_discounted_return": 0.16819700975568316,
+      "avg_steps_success": 66.08695652173913,
+      "avg_steps_failure": 66.93506493506493
+    },
+    {
+      "training_episode": 840,
+      "eval_success_rate": 0.26,
+      "eval_avg_return": 0.26,
+      "eval_avg_discounted_return": 0.1757785021566734,
+      "avg_steps_success": 83.11538461538461,
+      "avg_steps_failure": 74.66216216216216
+    },
+    {
+      "training_episode": 850,
+      "eval_success_rate": 0.25,
+      "eval_avg_return": 0.25,
+      "eval_avg_discounted_return": 0.17792340011674232,
+      "avg_steps_success": 70.68,
+      "avg_steps_failure": 69.68
+    },
+    {
+      "training_episode": 860,
+      "eval_success_rate": 0.23,
+      "eval_avg_return": 0.23,
+      "eval_avg_discounted_return": 0.17194586390640565,
+      "avg_steps_success": 60.52173913043478,
+      "avg_steps_failure": 77.35064935064935
+    },
+    {
+      "training_episode": 870,
+      "eval_success_rate": 0.24,
+      "eval_avg_return": 0.24,
+      "eval_avg_discounted_return": 0.17705314671150213,
+      "avg_steps_success": 64.625,
+      "avg_steps_failure": 71.21052631578948
+    },
+    {
+      "training_episode": 880,
+      "eval_success_rate": 0.27,
+      "eval_avg_return": 0.27,
+      "eval_avg_discounted_return": 0.19803761853828816,
+      "avg_steps_success": 64.92592592592592,
+      "avg_steps_failure": 63.35616438356164
+    },
+    {
+      "training_episode": 890,
+      "eval_success_rate": 0.26,
+      "eval_avg_return": 0.26,
+      "eval_avg_discounted_return": 0.2017965649763071,
+      "avg_steps_success": 52.5,
+      "avg_steps_failure": 66.85135135135135
+    },
+    {
+      "training_episode": 900,
+      "eval_success_rate": 0.23,
+      "eval_avg_return": 0.23,
+      "eval_avg_discounted_return": 0.16602582868664317,
+      "avg_steps_success": 67.56521739130434,
+      "avg_steps_failure": 63.36363636363637
+    },
+    {
+      "training_episode": 910,
+      "eval_success_rate": 0.25,
+      "eval_avg_return": 0.25,
+      "eval_avg_discounted_return": 0.18489553670898215,
+      "avg_steps_success": 62.76,
+      "avg_steps_failure": 70.93333333333334
+    },
+    {
+      "training_episode": 920,
+      "eval_success_rate": 0.33,
+      "eval_avg_return": 0.33,
+      "eval_avg_discounted_return": 0.2331304757715219,
+      "avg_steps_success": 72.66666666666667,
+      "avg_steps_failure": 78.49253731343283
+    },
+    {
+      "training_episode": 930,
+      "eval_success_rate": 0.26,
+      "eval_avg_return": 0.26,
+      "eval_avg_discounted_return": 0.19150912090584657,
+      "avg_steps_success": 63.57692307692308,
+      "avg_steps_failure": 70.32432432432432
+    },
+    {
+      "training_episode": 940,
+      "eval_success_rate": 0.18,
+      "eval_avg_return": 0.18,
+      "eval_avg_discounted_return": 0.12874908805474256,
+      "avg_steps_success": 70.33333333333333,
+      "avg_steps_failure": 78.79268292682927
+    },
+    {
+      "training_episode": 950,
+      "eval_success_rate": 0.23,
+      "eval_avg_return": 0.23,
+      "eval_avg_discounted_return": 0.16387809983698162,
+      "avg_steps_success": 70.30434782608695,
+      "avg_steps_failure": 75.64935064935065
+    },
+    {
+      "training_episode": 960,
+      "eval_success_rate": 0.2,
+      "eval_avg_return": 0.2,
+      "eval_avg_discounted_return": 0.14817046389065108,
+      "avg_steps_success": 62.75,
+      "avg_steps_failure": 79.7625
+    },
+    {
+      "training_episode": 970,
+      "eval_success_rate": 0.16,
+      "eval_avg_return": 0.16,
+      "eval_avg_discounted_return": 0.10891867787234358,
+      "avg_steps_success": 81.375,
+      "avg_steps_failure": 77.21428571428571
+    },
+    {
+      "training_episode": 980,
+      "eval_success_rate": 0.22,
+      "eval_avg_return": 0.22,
+      "eval_avg_discounted_return": 0.1481539393329311,
+      "avg_steps_success": 81.77272727272727,
+      "avg_steps_failure": 71.35897435897436
+    },
+    {
+      "training_episode": 990,
+      "eval_success_rate": 0.18,
+      "eval_avg_return": 0.18,
+      "eval_avg_discounted_return": 0.1301289425686559,
+      "avg_steps_success": 67.5,
+      "avg_steps_failure": 72.92682926829268
+    },
+    {
+      "training_episode": 1000,
+      "eval_success_rate": 0.23,
+      "eval_avg_return": 0.23,
+      "eval_avg_discounted_return": 0.16542182052307886,
+      "avg_steps_success": 69.52173913043478,
+      "avg_steps_failure": 75.57142857142857
+    },
+    {
+      "training_episode": 1010,
+      "eval_success_rate": 0.18,
+      "eval_avg_return": 0.18,
+      "eval_avg_discounted_return": 0.13034642471776112,
+      "avg_steps_success": 67.27777777777777,
+      "avg_steps_failure": 74.95121951219512
+    },
+    {
+      "training_episode": 1020,
+      "eval_success_rate": 0.21,
+      "eval_avg_return": 0.21,
+      "eval_avg_discounted_return": 0.14730281491085406,
+      "avg_steps_success": 75.52380952380952,
+      "avg_steps_failure": 75.46835443037975
+    },
+    {
+      "training_episode": 1030,
+      "eval_success_rate": 0.22,
+      "eval_avg_return": 0.22,
+      "eval_avg_discounted_return": 0.14551149328433016,
+      "avg_steps_success": 85.9090909090909,
+      "avg_steps_failure": 67.62820512820512
+    },
+    {
+      "training_episode": 1040,
+      "eval_success_rate": 0.2,
+      "eval_avg_return": 0.2,
+      "eval_avg_discounted_return": 0.14802587370930675,
+      "avg_steps_success": 63.2,
+      "avg_steps_failure": 68.7375
+    },
+    {
+      "training_episode": 1050,
+      "eval_success_rate": 0.22,
+      "eval_avg_return": 0.22,
+      "eval_avg_discounted_return": 0.15852569351444562,
+      "avg_steps_success": 68.9090909090909,
+      "avg_steps_failure": 66.38461538461539
+    },
+    {
+      "training_episode": 1060,
+      "eval_success_rate": 0.32,
+      "eval_avg_return": 0.32,
+      "eval_avg_discounted_return": 0.21998816685665815,
+      "avg_steps_success": 78.25,
+      "avg_steps_failure": 69.94117647058823
+    },
+    {
+      "training_episode": 1070,
+      "eval_success_rate": 0.3,
+      "eval_avg_return": 0.3,
+      "eval_avg_discounted_return": 0.21634061103460836,
+      "avg_steps_success": 68.9,
+      "avg_steps_failure": 74.27142857142857
+    },
+    {
+      "training_episode": 1080,
+      "eval_success_rate": 0.19,
+      "eval_avg_return": 0.19,
+      "eval_avg_discounted_return": 0.1403864589289202,
+      "avg_steps_success": 62.8421052631579,
+      "avg_steps_failure": 74.1604938271605
+    },
+    {
+      "training_episode": 1090,
+      "eval_success_rate": 0.24,
+      "eval_avg_return": 0.24,
+      "eval_avg_discounted_return": 0.17198398889971123,
+      "avg_steps_success": 70.125,
+      "avg_steps_failure": 70.86842105263158
+    },
+    {
+      "training_episode": 1100,
+      "eval_success_rate": 0.26,
+      "eval_avg_return": 0.26,
+      "eval_avg_discounted_return": 0.1720985925197204,
+      "avg_steps_success": 87.53846153846153,
+      "avg_steps_failure": 103.52702702702703
+    },
+    {
+      "training_episode": 1110,
+      "eval_success_rate": 0.24,
+      "eval_avg_return": 0.24,
+      "eval_avg_discounted_return": 0.16197457193005058,
+      "avg_steps_success": 82.875,
+      "avg_steps_failure": 91.02631578947368
+    },
+    {
+      "training_episode": 1120,
+      "eval_success_rate": 0.24,
+      "eval_avg_return": 0.24,
+      "eval_avg_discounted_return": 0.1700431057948489,
+      "avg_steps_success": 71.45833333333333,
+      "avg_steps_failure": 87.07894736842105
+    },
+    {
+      "training_episode": 1130,
+      "eval_success_rate": 0.28,
+      "eval_avg_return": 0.28,
+      "eval_avg_discounted_return": 0.1913220427974714,
+      "avg_steps_success": 81.25,
+      "avg_steps_failure": 73.77777777777777
+    },
+    {
+      "training_episode": 1140,
+      "eval_success_rate": 0.33,
+      "eval_avg_return": 0.33,
+      "eval_avg_discounted_return": 0.2447229536245168,
+      "avg_steps_success": 62.21212121212121,
+      "avg_steps_failure": 68.7910447761194
+    },
+    {
+      "training_episode": 1150,
+      "eval_success_rate": 0.2,
+      "eval_avg_return": 0.2,
+      "eval_avg_discounted_return": 0.14540698844517705,
+      "avg_steps_success": 66.8,
+      "avg_steps_failure": 69.125
+    },
+    {
+      "training_episode": 1160,
+      "eval_success_rate": 0.31,
+      "eval_avg_return": 0.31,
+      "eval_avg_discounted_return": 0.20669969283755155,
+      "avg_steps_success": 84.80645161290323,
+      "avg_steps_failure": 75.14492753623189
+    },
+    {
+      "training_episode": 1170,
+      "eval_success_rate": 0.23,
+      "eval_avg_return": 0.23,
+      "eval_avg_discounted_return": 0.16963356756535647,
+      "avg_steps_success": 63.391304347826086,
+      "avg_steps_failure": 61.935064935064936
+    },
+    {
+      "training_episode": 1180,
+      "eval_success_rate": 0.72,
+      "eval_avg_return": 0.72,
+      "eval_avg_discounted_return": 0.4902044551731935,
+      "avg_steps_success": 81.19444444444444,
+      "avg_steps_failure": 76.39285714285714
+    },
+    {
+      "training_episode": 1190,
+      "eval_success_rate": 0.71,
+      "eval_avg_return": 0.71,
+      "eval_avg_discounted_return": 0.49278287158375755,
+      "avg_steps_success": 77.05633802816901,
+      "avg_steps_failure": 101.37931034482759
+    },
+    {
+      "training_episode": 1200,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.48834945534109353,
+      "avg_steps_success": 84.71232876712328,
+      "avg_steps_failure": 94.22222222222223
+    },
+    {
+      "training_episode": 1210,
+      "eval_success_rate": 0.68,
+      "eval_avg_return": 0.68,
+      "eval_avg_discounted_return": 0.4593857965872539,
+      "avg_steps_success": 82.95588235294117,
+      "avg_steps_failure": 92.15625
+    },
+    {
+      "training_episode": 1220,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5628956612210599,
+      "avg_steps_success": 81.96385542168674,
+      "avg_steps_failure": 92.82352941176471
+    },
+    {
+      "training_episode": 1230,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5463116080667102,
+      "avg_steps_success": 80.8375,
+      "avg_steps_failure": 80.45
+    },
+    {
+      "training_episode": 1240,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5700814581444684,
+      "avg_steps_success": 83.90588235294118,
+      "avg_steps_failure": 93.86666666666666
+    },
+    {
+      "training_episode": 1250,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.5411051825424932,
+      "avg_steps_success": 77.6025641025641,
+      "avg_steps_failure": 95.95454545454545
+    },
+    {
+      "training_episode": 1260,
+      "eval_success_rate": 0.69,
+      "eval_avg_return": 0.69,
+      "eval_avg_discounted_return": 0.4711313490121226,
+      "avg_steps_success": 80.59420289855072,
+      "avg_steps_failure": 90.48387096774194
+    },
+    {
+      "training_episode": 1270,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.5072822164018281,
+      "avg_steps_success": 76.5068493150685,
+      "avg_steps_failure": 87.4074074074074
+    },
+    {
+      "training_episode": 1280,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.5232448643659467,
+      "avg_steps_success": 86.63291139240506,
+      "avg_steps_failure": 89.61904761904762
+    },
+    {
+      "training_episode": 1290,
+      "eval_success_rate": 0.7,
+      "eval_avg_return": 0.7,
+      "eval_avg_discounted_return": 0.46039203033306664,
+      "avg_steps_success": 88.02857142857142,
+      "avg_steps_failure": 103.26666666666667
+    },
+    {
+      "training_episode": 1300,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5602131801499199,
+      "avg_steps_success": 80.78048780487805,
+      "avg_steps_failure": 91.5
+    },
+    {
+      "training_episode": 1310,
+      "eval_success_rate": 0.77,
+      "eval_avg_return": 0.77,
+      "eval_avg_discounted_return": 0.5311537850647743,
+      "avg_steps_success": 78.55844155844156,
+      "avg_steps_failure": 97.04347826086956
+    },
+    {
+      "training_episode": 1320,
+      "eval_success_rate": 0.68,
+      "eval_avg_return": 0.68,
+      "eval_avg_discounted_return": 0.4622448497291545,
+      "avg_steps_success": 80.3529411764706,
+      "avg_steps_failure": 98.03125
+    },
+    {
+      "training_episode": 1330,
+      "eval_success_rate": 0.76,
+      "eval_avg_return": 0.76,
+      "eval_avg_discounted_return": 0.5062374393512641,
+      "avg_steps_success": 85.52631578947368,
+      "avg_steps_failure": 93.54166666666667
+    },
+    {
+      "training_episode": 1340,
+      "eval_success_rate": 0.71,
+      "eval_avg_return": 0.71,
+      "eval_avg_discounted_return": 0.4594011031831432,
+      "avg_steps_success": 91.73239436619718,
+      "avg_steps_failure": 84.72413793103448
+    },
+    {
+      "training_episode": 1350,
+      "eval_success_rate": 0.69,
+      "eval_avg_return": 0.69,
+      "eval_avg_discounted_return": 0.4608931260356954,
+      "avg_steps_success": 85.3913043478261,
+      "avg_steps_failure": 102.61290322580645
+    },
+    {
+      "training_episode": 1360,
+      "eval_success_rate": 0.74,
+      "eval_avg_return": 0.74,
+      "eval_avg_discounted_return": 0.5028385985454266,
+      "avg_steps_success": 81.60810810810811,
+      "avg_steps_failure": 96.57692307692308
+    },
+    {
+      "training_episode": 1370,
+      "eval_success_rate": 0.7,
+      "eval_avg_return": 0.7,
+      "eval_avg_discounted_return": 0.47888906062046643,
+      "avg_steps_success": 79.55714285714286,
+      "avg_steps_failure": 99.5
+    },
+    {
+      "training_episode": 1380,
+      "eval_success_rate": 0.77,
+      "eval_avg_return": 0.77,
+      "eval_avg_discounted_return": 0.5218323556188676,
+      "avg_steps_success": 81.76623376623377,
+      "avg_steps_failure": 113.1304347826087
+    },
+    {
+      "training_episode": 1390,
+      "eval_success_rate": 0.74,
+      "eval_avg_return": 0.74,
+      "eval_avg_discounted_return": 0.5094989691125534,
+      "avg_steps_success": 78.12162162162163,
+      "avg_steps_failure": 90.03846153846153
+    },
+    {
+      "training_episode": 1400,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.5178319502008477,
+      "avg_steps_success": 72.76712328767124,
+      "avg_steps_failure": 88.44444444444444
+    },
+    {
+      "training_episode": 1410,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.5051010488236305,
+      "avg_steps_success": 77.71232876712328,
+      "avg_steps_failure": 83.4074074074074
+    },
+    {
+      "training_episode": 1420,
+      "eval_success_rate": 0.76,
+      "eval_avg_return": 0.76,
+      "eval_avg_discounted_return": 0.5102346374665888,
+      "avg_steps_success": 84.11842105263158,
+      "avg_steps_failure": 80.08333333333333
+    },
+    {
+      "training_episode": 1430,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.5302204447243603,
+      "avg_steps_success": 82.07692307692308,
+      "avg_steps_failure": 103.68181818181819
+    },
+    {
+      "training_episode": 1440,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.5405235578981229,
+      "avg_steps_success": 79.77215189873418,
+      "avg_steps_failure": 92.0952380952381
+    },
+    {
+      "training_episode": 1450,
+      "eval_success_rate": 0.74,
+      "eval_avg_return": 0.74,
+      "eval_avg_discounted_return": 0.5147843271594685,
+      "avg_steps_success": 76.0,
+      "avg_steps_failure": 89.38461538461539
+    },
+    {
+      "training_episode": 1460,
+      "eval_success_rate": 0.71,
+      "eval_avg_return": 0.71,
+      "eval_avg_discounted_return": 0.4864061591280086,
+      "avg_steps_success": 80.85915492957747,
+      "avg_steps_failure": 79.20689655172414
+    },
+    {
+      "training_episode": 1470,
+      "eval_success_rate": 0.77,
+      "eval_avg_return": 0.77,
+      "eval_avg_discounted_return": 0.5296975307907476,
+      "avg_steps_success": 78.59740259740259,
+      "avg_steps_failure": 78.52173913043478
+    },
+    {
+      "training_episode": 1480,
+      "eval_success_rate": 0.68,
+      "eval_avg_return": 0.68,
+      "eval_avg_discounted_return": 0.45153079793188106,
+      "avg_steps_success": 86.04411764705883,
+      "avg_steps_failure": 85.28125
+    },
+    {
+      "training_episode": 1490,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5043905332816564,
+      "avg_steps_success": 82.94666666666667,
+      "avg_steps_failure": 98.32
+    },
+    {
+      "training_episode": 1500,
+      "eval_success_rate": 0.74,
+      "eval_avg_return": 0.74,
+      "eval_avg_discounted_return": 0.504369798962882,
+      "avg_steps_success": 80.54054054054055,
+      "avg_steps_failure": 83.57692307692308
+    },
+    {
+      "training_episode": 1510,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5157900893078243,
+      "avg_steps_success": 78.41333333333333,
+      "avg_steps_failure": 85.36
+    },
+    {
+      "training_episode": 1520,
+      "eval_success_rate": 0.77,
+      "eval_avg_return": 0.77,
+      "eval_avg_discounted_return": 0.521502566695785,
+      "avg_steps_success": 81.96103896103897,
+      "avg_steps_failure": 64.1304347826087
+    },
+    {
+      "training_episode": 1530,
+      "eval_success_rate": 0.71,
+      "eval_avg_return": 0.71,
+      "eval_avg_discounted_return": 0.48203463270179037,
+      "avg_steps_success": 81.66197183098592,
+      "avg_steps_failure": 89.20689655172414
+    },
+    {
+      "training_episode": 1540,
+      "eval_success_rate": 0.71,
+      "eval_avg_return": 0.71,
+      "eval_avg_discounted_return": 0.48220247489277185,
+      "avg_steps_success": 82.64788732394366,
+      "avg_steps_failure": 76.93103448275862
+    },
+    {
+      "training_episode": 1550,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5722953554168586,
+      "avg_steps_success": 78.26506024096386,
+      "avg_steps_failure": 71.0
+    },
+    {
+      "training_episode": 1560,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.567624047307543,
+      "avg_steps_success": 66.38461538461539,
+      "avg_steps_failure": 77.5909090909091
+    },
+    {
+      "training_episode": 1570,
+      "eval_success_rate": 0.69,
+      "eval_avg_return": 0.69,
+      "eval_avg_discounted_return": 0.4683177142645464,
+      "avg_steps_success": 81.6086956521739,
+      "avg_steps_failure": 80.87096774193549
+    },
+    {
+      "training_episode": 1580,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.4875710381810731,
+      "avg_steps_success": 85.95890410958904,
+      "avg_steps_failure": 85.33333333333333
+    },
+    {
+      "training_episode": 1590,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.5078188689272054,
+      "avg_steps_success": 76.15068493150685,
+      "avg_steps_failure": 88.03703703703704
+    },
+    {
+      "training_episode": 1600,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.566332238130196,
+      "avg_steps_success": 74.9753086419753,
+      "avg_steps_failure": 99.6842105263158
+    },
+    {
+      "training_episode": 1610,
+      "eval_success_rate": 0.76,
+      "eval_avg_return": 0.76,
+      "eval_avg_discounted_return": 0.5221441124800069,
+      "avg_steps_success": 79.34210526315789,
+      "avg_steps_failure": 74.0
+    },
+    {
+      "training_episode": 1620,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.5377714226370776,
+      "avg_steps_success": 77.91025641025641,
+      "avg_steps_failure": 73.36363636363636
+    },
+    {
+      "training_episode": 1630,
+      "eval_success_rate": 0.74,
+      "eval_avg_return": 0.74,
+      "eval_avg_discounted_return": 0.5127999842233527,
+      "avg_steps_success": 78.21621621621621,
+      "avg_steps_failure": 94.15384615384616
+    },
+    {
+      "training_episode": 1640,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.5461517363938666,
+      "avg_steps_success": 74.83333333333333,
+      "avg_steps_failure": 77.5
+    },
+    {
+      "training_episode": 1650,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.5510672555804139,
+      "avg_steps_success": 76.0253164556962,
+      "avg_steps_failure": 118.0
+    },
+    {
+      "training_episode": 1660,
+      "eval_success_rate": 0.68,
+      "eval_avg_return": 0.68,
+      "eval_avg_discounted_return": 0.4712924915296297,
+      "avg_steps_success": 77.17647058823529,
+      "avg_steps_failure": 81.03125
+    },
+    {
+      "training_episode": 1670,
+      "eval_success_rate": 0.68,
+      "eval_avg_return": 0.68,
+      "eval_avg_discounted_return": 0.46493807971290335,
+      "avg_steps_success": 79.19117647058823,
+      "avg_steps_failure": 93.15625
+    },
+    {
+      "training_episode": 1680,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.5007407896524994,
+      "avg_steps_success": 79.35616438356165,
+      "avg_steps_failure": 80.03703703703704
+    },
+    {
+      "training_episode": 1690,
+      "eval_success_rate": 0.68,
+      "eval_avg_return": 0.68,
+      "eval_avg_discounted_return": 0.47413322412394054,
+      "avg_steps_success": 75.91176470588235,
+      "avg_steps_failure": 83.21875
+    },
+    {
+      "training_episode": 1700,
+      "eval_success_rate": 0.69,
+      "eval_avg_return": 0.69,
+      "eval_avg_discounted_return": 0.47478800149955525,
+      "avg_steps_success": 78.73913043478261,
+      "avg_steps_failure": 91.70967741935483
+    },
+    {
+      "training_episode": 1710,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5290314612309823,
+      "avg_steps_success": 88.025,
+      "avg_steps_failure": 90.65
+    },
+    {
+      "training_episode": 1720,
+      "eval_success_rate": 0.68,
+      "eval_avg_return": 0.68,
+      "eval_avg_discounted_return": 0.4595534045304537,
+      "avg_steps_success": 82.97058823529412,
+      "avg_steps_failure": 75.78125
+    },
+    {
+      "training_episode": 1730,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.538171506642539,
+      "avg_steps_success": 78.6923076923077,
+      "avg_steps_failure": 80.63636363636364
+    },
+    {
+      "training_episode": 1740,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5580887609080437,
+      "avg_steps_success": 76.525,
+      "avg_steps_failure": 78.8
+    },
+    {
+      "training_episode": 1750,
+      "eval_success_rate": 0.72,
+      "eval_avg_return": 0.72,
+      "eval_avg_discounted_return": 0.4978051744895755,
+      "avg_steps_success": 77.47222222222223,
+      "avg_steps_failure": 93.0
+    },
+    {
+      "training_episode": 1760,
+      "eval_success_rate": 0.65,
+      "eval_avg_return": 0.65,
+      "eval_avg_discounted_return": 0.4554114154664067,
+      "avg_steps_success": 74.0,
+      "avg_steps_failure": 87.62857142857143
+    },
+    {
+      "training_episode": 1770,
+      "eval_success_rate": 0.72,
+      "eval_avg_return": 0.72,
+      "eval_avg_discounted_return": 0.49525163215924795,
+      "avg_steps_success": 79.36111111111111,
+      "avg_steps_failure": 95.5
+    },
+    {
+      "training_episode": 1780,
+      "eval_success_rate": 0.72,
+      "eval_avg_return": 0.72,
+      "eval_avg_discounted_return": 0.5077628177817438,
+      "avg_steps_success": 73.23611111111111,
+      "avg_steps_failure": 89.10714285714286
+    },
+    {
+      "training_episode": 1790,
+      "eval_success_rate": 0.7,
+      "eval_avg_return": 0.7,
+      "eval_avg_discounted_return": 0.4793277972520108,
+      "avg_steps_success": 79.31428571428572,
+      "avg_steps_failure": 92.43333333333334
+    },
+    {
+      "training_episode": 1800,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.5424328545472228,
+      "avg_steps_success": 79.44303797468355,
+      "avg_steps_failure": 83.0952380952381
+    },
+    {
+      "training_episode": 1810,
+      "eval_success_rate": 0.77,
+      "eval_avg_return": 0.77,
+      "eval_avg_discounted_return": 0.5256974497912553,
+      "avg_steps_success": 80.24675324675324,
+      "avg_steps_failure": 92.43478260869566
+    },
+    {
+      "training_episode": 1820,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5165121068955179,
+      "avg_steps_success": 79.61333333333333,
+      "avg_steps_failure": 83.12
+    },
+    {
+      "training_episode": 1830,
+      "eval_success_rate": 0.77,
+      "eval_avg_return": 0.77,
+      "eval_avg_discounted_return": 0.5402228112262059,
+      "avg_steps_success": 73.87012987012987,
+      "avg_steps_failure": 82.56521739130434
+    },
+    {
+      "training_episode": 1840,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.5108668080570485,
+      "avg_steps_success": 75.08219178082192,
+      "avg_steps_failure": 89.77777777777777
+    },
+    {
+      "training_episode": 1850,
+      "eval_success_rate": 0.76,
+      "eval_avg_return": 0.76,
+      "eval_avg_discounted_return": 0.5048371072670949,
+      "avg_steps_success": 85.28947368421052,
+      "avg_steps_failure": 109.70833333333333
+    },
+    {
+      "training_episode": 1860,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.5314157565955476,
+      "avg_steps_success": 80.46153846153847,
+      "avg_steps_failure": 102.0
+    },
+    {
+      "training_episode": 1870,
+      "eval_success_rate": 0.7,
+      "eval_avg_return": 0.7,
+      "eval_avg_discounted_return": 0.4949538028817091,
+      "avg_steps_success": 72.4,
+      "avg_steps_failure": 78.86666666666666
+    },
+    {
+      "training_episode": 1880,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.5086454259451566,
+      "avg_steps_success": 76.87671232876713,
+      "avg_steps_failure": 79.55555555555556
+    },
+    {
+      "training_episode": 1890,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.5420172936784732,
+      "avg_steps_success": 77.5,
+      "avg_steps_failure": 91.5909090909091
+    },
+    {
+      "training_episode": 1900,
+      "eval_success_rate": 0.7,
+      "eval_avg_return": 0.7,
+      "eval_avg_discounted_return": 0.46676422268086,
+      "avg_steps_success": 85.45714285714286,
+      "avg_steps_failure": 90.36666666666666
+    },
+    {
+      "training_episode": 1910,
+      "eval_success_rate": 0.68,
+      "eval_avg_return": 0.68,
+      "eval_avg_discounted_return": 0.4717215306680188,
+      "avg_steps_success": 77.48529411764706,
+      "avg_steps_failure": 88.0625
+    },
+    {
+      "training_episode": 1920,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5928458641590899,
+      "avg_steps_success": 73.02380952380952,
+      "avg_steps_failure": 87.0625
+    },
+    {
+      "training_episode": 1930,
+      "eval_success_rate": 0.77,
+      "eval_avg_return": 0.77,
+      "eval_avg_discounted_return": 0.5236326492652986,
+      "avg_steps_success": 81.11688311688312,
+      "avg_steps_failure": 87.30434782608695
+    },
+    {
+      "training_episode": 1940,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5067653144531687,
+      "avg_steps_success": 82.6,
+      "avg_steps_failure": 82.96
+    },
+    {
+      "training_episode": 1950,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5212836878315565,
+      "avg_steps_success": 77.34666666666666,
+      "avg_steps_failure": 83.56
+    },
+    {
+      "training_episode": 1960,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5255759240861402,
+      "avg_steps_success": 74.57333333333334,
+      "avg_steps_failure": 90.08
+    },
+    {
+      "training_episode": 1970,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.5031091139928022,
+      "avg_steps_success": 78.58904109589041,
+      "avg_steps_failure": 85.25925925925925
+    },
+    {
+      "training_episode": 1980,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.5373971858201763,
+      "avg_steps_success": 80.78481012658227,
+      "avg_steps_failure": 97.04761904761905
+    },
+    {
+      "training_episode": 1990,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5284427458964123,
+      "avg_steps_success": 73.18666666666667,
+      "avg_steps_failure": 73.44
+    },
+    {
+      "training_episode": 2000,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5113552326548436,
+      "avg_steps_success": 80.72,
+      "avg_steps_failure": 92.76
+    },
+    {
+      "training_episode": 2010,
+      "eval_success_rate": 0.72,
+      "eval_avg_return": 0.72,
+      "eval_avg_discounted_return": 0.4993984975144048,
+      "avg_steps_success": 76.65277777777777,
+      "avg_steps_failure": 75.28571428571429
+    },
+    {
+      "training_episode": 2020,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5154929460505226,
+      "avg_steps_success": 78.68,
+      "avg_steps_failure": 87.84
+    },
+    {
+      "training_episode": 2030,
+      "eval_success_rate": 0.72,
+      "eval_avg_return": 0.72,
+      "eval_avg_discounted_return": 0.5062346599995815,
+      "avg_steps_success": 74.16666666666667,
+      "avg_steps_failure": 82.96428571428571
+    },
+    {
+      "training_episode": 2040,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.55594662325684,
+      "avg_steps_success": 76.825,
+      "avg_steps_failure": 111.15
+    },
+    {
+      "training_episode": 2050,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5855925428198255,
+      "avg_steps_success": 77.91764705882353,
+      "avg_steps_failure": 77.8
+    },
+    {
+      "training_episode": 2060,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5049331499144225,
+      "avg_steps_success": 83.68,
+      "avg_steps_failure": 86.84
+    },
+    {
+      "training_episode": 2070,
+      "eval_success_rate": 0.69,
+      "eval_avg_return": 0.69,
+      "eval_avg_discounted_return": 0.4868806762265789,
+      "avg_steps_success": 74.01449275362319,
+      "avg_steps_failure": 87.3225806451613
+    },
+    {
+      "training_episode": 2080,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.5648951470702676,
+      "avg_steps_success": 75.82716049382717,
+      "avg_steps_failure": 87.0
+    },
+    {
+      "training_episode": 2090,
+      "eval_success_rate": 0.71,
+      "eval_avg_return": 0.71,
+      "eval_avg_discounted_return": 0.48956187967345616,
+      "avg_steps_success": 78.15492957746478,
+      "avg_steps_failure": 87.96551724137932
+    },
+    {
+      "training_episode": 2100,
+      "eval_success_rate": 0.71,
+      "eval_avg_return": 0.71,
+      "eval_avg_discounted_return": 0.4806038144955208,
+      "avg_steps_success": 82.35211267605634,
+      "avg_steps_failure": 89.0
+    },
+    {
+      "training_episode": 2110,
+      "eval_success_rate": 0.77,
+      "eval_avg_return": 0.77,
+      "eval_avg_discounted_return": 0.5336680420249101,
+      "avg_steps_success": 77.58441558441558,
+      "avg_steps_failure": 89.43478260869566
+    },
+    {
+      "training_episode": 2120,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5638417788228326,
+      "avg_steps_success": 86.11764705882354,
+      "avg_steps_failure": 81.46666666666667
+    },
+    {
+      "training_episode": 2130,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5761623901707383,
+      "avg_steps_success": 86.8735632183908,
+      "avg_steps_failure": 101.0
+    },
+    {
+      "training_episode": 2140,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.6078094802301102,
+      "avg_steps_success": 82.84444444444445,
+      "avg_steps_failure": 131.7
+    },
+    {
+      "training_episode": 2150,
+      "eval_success_rate": 0.73,
+      "eval_avg_return": 0.73,
+      "eval_avg_discounted_return": 0.4893458031821314,
+      "avg_steps_success": 83.91780821917808,
+      "avg_steps_failure": 106.18518518518519
+    },
+    {
+      "training_episode": 2160,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5865211640162304,
+      "avg_steps_success": 83.57471264367815,
+      "avg_steps_failure": 91.76923076923077
+    },
+    {
+      "training_episode": 2170,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.5238452205909302,
+      "avg_steps_success": 83.44871794871794,
+      "avg_steps_failure": 119.54545454545455
+    },
+    {
+      "training_episode": 2180,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5581814728569138,
+      "avg_steps_success": 84.10843373493977,
+      "avg_steps_failure": 110.17647058823529
+    },
+    {
+      "training_episode": 2190,
+      "eval_success_rate": 0.93,
+      "eval_avg_return": 0.93,
+      "eval_avg_discounted_return": 0.6335236187719793,
+      "avg_steps_success": 80.20430107526882,
+      "avg_steps_failure": 95.71428571428571
+    },
+    {
+      "training_episode": 2200,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5874557173537472,
+      "avg_steps_success": 84.93181818181819,
+      "avg_steps_failure": 88.41666666666667
+    },
+    {
+      "training_episode": 2210,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5899570788597303,
+      "avg_steps_success": 80.3953488372093,
+      "avg_steps_failure": 104.14285714285714
+    },
+    {
+      "training_episode": 2220,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5810049458766378,
+      "avg_steps_success": 80.2235294117647,
+      "avg_steps_failure": 97.06666666666666
+    },
+    {
+      "training_episode": 2230,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.6139635916122217,
+      "avg_steps_success": 72.94252873563218,
+      "avg_steps_failure": 105.07692307692308
+    },
+    {
+      "training_episode": 2240,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5817330633642235,
+      "avg_steps_success": 85.1264367816092,
+      "avg_steps_failure": 112.53846153846153
+    },
+    {
+      "training_episode": 2250,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.6153320325459388,
+      "avg_steps_success": 73.4367816091954,
+      "avg_steps_failure": 81.07692307692308
+    },
+    {
+      "training_episode": 2260,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5608285188617,
+      "avg_steps_success": 87.38823529411765,
+      "avg_steps_failure": 117.06666666666666
+    },
+    {
+      "training_episode": 2270,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.6076740329870287,
+      "avg_steps_success": 78.10227272727273,
+      "avg_steps_failure": 148.58333333333334
+    },
+    {
+      "training_episode": 2280,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.5384551831041882,
+      "avg_steps_success": 86.29629629629629,
+      "avg_steps_failure": 91.47368421052632
+    },
+    {
+      "training_episode": 2290,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5629781131517914,
+      "avg_steps_success": 79.9390243902439,
+      "avg_steps_failure": 93.27777777777777
+    },
+    {
+      "training_episode": 2300,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5833154563439177,
+      "avg_steps_success": 84.19540229885058,
+      "avg_steps_failure": 101.46153846153847
+    },
+    {
+      "training_episode": 2310,
+      "eval_success_rate": 0.92,
+      "eval_avg_return": 0.92,
+      "eval_avg_discounted_return": 0.5923257521556216,
+      "avg_steps_success": 93.29347826086956,
+      "avg_steps_failure": 93.75
+    },
+    {
+      "training_episode": 2320,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5634163865307773,
+      "avg_steps_success": 86.34117647058824,
+      "avg_steps_failure": 112.33333333333333
+    },
+    {
+      "training_episode": 2330,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.5312043194554643,
+      "avg_steps_success": 83.58227848101266,
+      "avg_steps_failure": 141.76190476190476
+    },
+    {
+      "training_episode": 2340,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5490276155776871,
+      "avg_steps_success": 103.07865168539325,
+      "avg_steps_failure": 79.18181818181819
+    },
+    {
+      "training_episode": 2350,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.609677422870578,
+      "avg_steps_success": 82.78888888888889,
+      "avg_steps_failure": 117.1
+    },
+    {
+      "training_episode": 2360,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5447665359335414,
+      "avg_steps_success": 80.5375,
+      "avg_steps_failure": 148.8
+    },
+    {
+      "training_episode": 2370,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5728939253537342,
+      "avg_steps_success": 80.71428571428571,
+      "avg_steps_failure": 119.4375
+    },
+    {
+      "training_episode": 2380,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5912387362951175,
+      "avg_steps_success": 81.66666666666667,
+      "avg_steps_failure": 75.07692307692308
+    },
+    {
+      "training_episode": 2390,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5693966683015341,
+      "avg_steps_success": 92.25,
+      "avg_steps_failure": 115.0
+    },
+    {
+      "training_episode": 2400,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5882754182439395,
+      "avg_steps_success": 82.50574712643679,
+      "avg_steps_failure": 107.53846153846153
+    },
+    {
+      "training_episode": 2410,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5650831127440622,
+      "avg_steps_success": 83.4047619047619,
+      "avg_steps_failure": 99.1875
+    },
+    {
+      "training_episode": 2420,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5875865507618117,
+      "avg_steps_success": 80.30232558139535,
+      "avg_steps_failure": 135.0
+    },
+    {
+      "training_episode": 2430,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5739840775294851,
+      "avg_steps_success": 80.33333333333333,
+      "avg_steps_failure": 95.0625
+    },
+    {
+      "training_episode": 2440,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5630471694453756,
+      "avg_steps_success": 86.88235294117646,
+      "avg_steps_failure": 110.93333333333334
+    },
+    {
+      "training_episode": 2450,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5831406245373796,
+      "avg_steps_success": 84.26436781609195,
+      "avg_steps_failure": 86.61538461538461
+    },
+    {
+      "training_episode": 2460,
+      "eval_success_rate": 0.93,
+      "eval_avg_return": 0.93,
+      "eval_avg_discounted_return": 0.6007119559695788,
+      "avg_steps_success": 92.58064516129032,
+      "avg_steps_failure": 101.71428571428571
+    },
+    {
+      "training_episode": 2470,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5615810651779113,
+      "avg_steps_success": 90.1046511627907,
+      "avg_steps_failure": 99.14285714285714
+    },
+    {
+      "training_episode": 2480,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5713755561570895,
+      "avg_steps_success": 89.59770114942529,
+      "avg_steps_failure": 94.38461538461539
+    },
+    {
+      "training_episode": 2490,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5949395107512754,
+      "avg_steps_success": 82.32954545454545,
+      "avg_steps_failure": 98.0
+    },
+    {
+      "training_episode": 2500,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.596304781893132,
+      "avg_steps_success": 81.89772727272727,
+      "avg_steps_failure": 142.41666666666666
+    },
+    {
+      "training_episode": 2510,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5654668956452692,
+      "avg_steps_success": 88.69767441860465,
+      "avg_steps_failure": 143.42857142857142
+    },
+    {
+      "training_episode": 2520,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.524735690360666,
+      "avg_steps_success": 89.8125,
+      "avg_steps_failure": 102.05
+    },
+    {
+      "training_episode": 2530,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5185666976641221,
+      "avg_steps_success": 97.21951219512195,
+      "avg_steps_failure": 135.72222222222223
+    },
+    {
+      "training_episode": 2540,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.574584120041238,
+      "avg_steps_success": 86.0,
+      "avg_steps_failure": 106.78571428571429
+    },
+    {
+      "training_episode": 2550,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5411909334634157,
+      "avg_steps_success": 88.14634146341463,
+      "avg_steps_failure": 114.22222222222223
+    },
+    {
+      "training_episode": 2560,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5778401218327062,
+      "avg_steps_success": 78.32142857142857,
+      "avg_steps_failure": 121.8125
+    },
+    {
+      "training_episode": 2570,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5592078281382151,
+      "avg_steps_success": 80.97560975609755,
+      "avg_steps_failure": 130.83333333333334
+    },
+    {
+      "training_episode": 2580,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.6085140804467949,
+      "avg_steps_success": 82.64444444444445,
+      "avg_steps_failure": 52.3
+    },
+    {
+      "training_episode": 2590,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.5477331662435971,
+      "avg_steps_success": 78.0126582278481,
+      "avg_steps_failure": 117.66666666666667
+    },
+    {
+      "training_episode": 2600,
+      "eval_success_rate": 0.76,
+      "eval_avg_return": 0.76,
+      "eval_avg_discounted_return": 0.5259869469763366,
+      "avg_steps_success": 77.72368421052632,
+      "avg_steps_failure": 95.70833333333333
+    },
+    {
+      "training_episode": 2610,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.6138763597579296,
+      "avg_steps_success": 78.6067415730337,
+      "avg_steps_failure": 102.0909090909091
+    },
+    {
+      "training_episode": 2620,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5859752626617728,
+      "avg_steps_success": 81.5,
+      "avg_steps_failure": 108.64285714285714
+    },
+    {
+      "training_episode": 2630,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.6044478111738444,
+      "avg_steps_success": 81.04494382022472,
+      "avg_steps_failure": 125.45454545454545
+    },
+    {
+      "training_episode": 2640,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5878672173748852,
+      "avg_steps_success": 82.52873563218391,
+      "avg_steps_failure": 128.84615384615384
+    },
+    {
+      "training_episode": 2650,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.6016324419274001,
+      "avg_steps_success": 83.01123595505618,
+      "avg_steps_failure": 84.81818181818181
+    },
+    {
+      "training_episode": 2660,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5683187070259794,
+      "avg_steps_success": 82.73809523809524,
+      "avg_steps_failure": 91.125
+    },
+    {
+      "training_episode": 2670,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5640721038104497,
+      "avg_steps_success": 87.34117647058824,
+      "avg_steps_failure": 85.73333333333333
+    },
+    {
+      "training_episode": 2680,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.597423089793624,
+      "avg_steps_success": 78.54022988505747,
+      "avg_steps_failure": 94.23076923076923
+    },
+    {
+      "training_episode": 2690,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5753750891504716,
+      "avg_steps_success": 87.79310344827586,
+      "avg_steps_failure": 102.84615384615384
+    },
+    {
+      "training_episode": 2700,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5663477362416954,
+      "avg_steps_success": 88.44186046511628,
+      "avg_steps_failure": 124.78571428571429
+    },
+    {
+      "training_episode": 2710,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5973460021258584,
+      "avg_steps_success": 83.73033707865169,
+      "avg_steps_failure": 110.81818181818181
+    },
+    {
+      "training_episode": 2720,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5481180404400972,
+      "avg_steps_success": 85.08536585365853,
+      "avg_steps_failure": 112.22222222222223
+    },
+    {
+      "training_episode": 2730,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5597880335726206,
+      "avg_steps_success": 89.27058823529411,
+      "avg_steps_failure": 93.13333333333334
+    },
+    {
+      "training_episode": 2740,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5578735948299756,
+      "avg_steps_success": 80.96341463414635,
+      "avg_steps_failure": 102.44444444444444
+    },
+    {
+      "training_episode": 2750,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5550308248527647,
+      "avg_steps_success": 89.87058823529412,
+      "avg_steps_failure": 113.13333333333334
+    },
+    {
+      "training_episode": 2760,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5361886708865462,
+      "avg_steps_success": 84.4875,
+      "avg_steps_failure": 93.25
+    },
+    {
+      "training_episode": 2770,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.5551404494582429,
+      "avg_steps_success": 80.38271604938272,
+      "avg_steps_failure": 88.78947368421052
+    },
+    {
+      "training_episode": 2780,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5809372442955891,
+      "avg_steps_success": 85.62068965517241,
+      "avg_steps_failure": 106.15384615384616
+    },
+    {
+      "training_episode": 2790,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5694880536359183,
+      "avg_steps_success": 82.55952380952381,
+      "avg_steps_failure": 103.75
+    },
+    {
+      "training_episode": 2800,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.579729746572514,
+      "avg_steps_success": 83.45348837209302,
+      "avg_steps_failure": 143.28571428571428
+    },
+    {
+      "training_episode": 2810,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.590661672696079,
+      "avg_steps_success": 84.39772727272727,
+      "avg_steps_failure": 104.91666666666667
+    },
+    {
+      "training_episode": 2820,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5700612456476223,
+      "avg_steps_success": 83.72941176470589,
+      "avg_steps_failure": 95.8
+    },
+    {
+      "training_episode": 2830,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5667722233597646,
+      "avg_steps_success": 88.0,
+      "avg_steps_failure": 138.42857142857142
+    },
+    {
+      "training_episode": 2840,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5985965742235435,
+      "avg_steps_success": 81.52272727272727,
+      "avg_steps_failure": 121.5
+    },
+    {
+      "training_episode": 2850,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.532409030989416,
+      "avg_steps_success": 88.28395061728395,
+      "avg_steps_failure": 95.94736842105263
+    },
+    {
+      "training_episode": 2860,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5810009694534191,
+      "avg_steps_success": 83.05813953488372,
+      "avg_steps_failure": 93.28571428571429
+    },
+    {
+      "training_episode": 2870,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5529644195887408,
+      "avg_steps_success": 86.04819277108433,
+      "avg_steps_failure": 108.94117647058823
+    },
+    {
+      "training_episode": 2880,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5789395919757154,
+      "avg_steps_success": 85.02298850574712,
+      "avg_steps_failure": 105.38461538461539
+    },
+    {
+      "training_episode": 2890,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5655977580250462,
+      "avg_steps_success": 85.32941176470588,
+      "avg_steps_failure": 94.0
+    },
+    {
+      "training_episode": 2900,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5731873304008174,
+      "avg_steps_success": 81.4047619047619,
+      "avg_steps_failure": 103.9375
+    },
+    {
+      "training_episode": 2910,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5800724961944205,
+      "avg_steps_success": 85.64367816091954,
+      "avg_steps_failure": 95.3076923076923
+    },
+    {
+      "training_episode": 2920,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5775900682418234,
+      "avg_steps_success": 81.61176470588235,
+      "avg_steps_failure": 116.53333333333333
+    },
+    {
+      "training_episode": 2930,
+      "eval_success_rate": 0.92,
+      "eval_avg_return": 0.92,
+      "eval_avg_discounted_return": 0.6065959013844356,
+      "avg_steps_success": 88.02173913043478,
+      "avg_steps_failure": 132.75
+    },
+    {
+      "training_episode": 2940,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5823656719644912,
+      "avg_steps_success": 81.98837209302326,
+      "avg_steps_failure": 87.0
+    },
+    {
+      "training_episode": 2950,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5708302289049633,
+      "avg_steps_success": 79.26506024096386,
+      "avg_steps_failure": 127.3529411764706
+    },
+    {
+      "training_episode": 2960,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5549846752861906,
+      "avg_steps_success": 85.62650602409639,
+      "avg_steps_failure": 110.70588235294117
+    },
+    {
+      "training_episode": 2970,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5699689013888133,
+      "avg_steps_success": 81.33333333333333,
+      "avg_steps_failure": 87.875
+    },
+    {
+      "training_episode": 2980,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5852679436273829,
+      "avg_steps_success": 86.06818181818181,
+      "avg_steps_failure": 132.0
+    },
+    {
+      "training_episode": 2990,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5703745470649223,
+      "avg_steps_success": 83.76470588235294,
+      "avg_steps_failure": 123.33333333333333
+    },
+    {
+      "training_episode": 3000,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.5078138190438353,
+      "avg_steps_success": 82.54666666666667,
+      "avg_steps_failure": 118.88
+    },
+    {
+      "training_episode": 3010,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.561741303796627,
+      "avg_steps_success": 86.75294117647059,
+      "avg_steps_failure": 106.4
+    },
+    {
+      "training_episode": 3020,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5452864650382674,
+      "avg_steps_success": 86.15853658536585,
+      "avg_steps_failure": 151.33333333333334
+    },
+    {
+      "training_episode": 3030,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.593972448413069,
+      "avg_steps_success": 87.87777777777778,
+      "avg_steps_failure": 123.7
+    },
+    {
+      "training_episode": 3040,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.6152269204773498,
+      "avg_steps_success": 77.64044943820225,
+      "avg_steps_failure": 111.81818181818181
+    },
+    {
+      "training_episode": 3050,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.546018228795376,
+      "avg_steps_success": 86.1219512195122,
+      "avg_steps_failure": 89.11111111111111
+    },
+    {
+      "training_episode": 3060,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5607150123283887,
+      "avg_steps_success": 82.3855421686747,
+      "avg_steps_failure": 132.94117647058823
+    },
+    {
+      "training_episode": 3070,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5939724924878691,
+      "avg_steps_success": 87.11111111111111,
+      "avg_steps_failure": 86.5
+    },
+    {
+      "training_episode": 3080,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5821043244961125,
+      "avg_steps_success": 87.94318181818181,
+      "avg_steps_failure": 121.0
+    },
+    {
+      "training_episode": 3090,
+      "eval_success_rate": 0.93,
+      "eval_avg_return": 0.93,
+      "eval_avg_discounted_return": 0.6416062758312994,
+      "avg_steps_success": 78.23655913978494,
+      "avg_steps_failure": 98.28571428571429
+    },
+    {
+      "training_episode": 3100,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5580937463524124,
+      "avg_steps_success": 85.72619047619048,
+      "avg_steps_failure": 106.3125
+    },
+    {
+      "training_episode": 3110,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.5510348748389094,
+      "avg_steps_success": 81.18518518518519,
+      "avg_steps_failure": 121.63157894736842
+    },
+    {
+      "training_episode": 3120,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5571812553599633,
+      "avg_steps_success": 86.6547619047619,
+      "avg_steps_failure": 102.625
+    },
+    {
+      "training_episode": 3130,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5550991079429219,
+      "avg_steps_success": 84.71084337349397,
+      "avg_steps_failure": 165.58823529411765
+    },
+    {
+      "training_episode": 3140,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.5292701886291885,
+      "avg_steps_success": 81.73076923076923,
+      "avg_steps_failure": 107.77272727272727
+    },
+    {
+      "training_episode": 3150,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5858218443143856,
+      "avg_steps_success": 83.32183908045977,
+      "avg_steps_failure": 132.69230769230768
+    },
+    {
+      "training_episode": 3160,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.6188723571470551,
+      "avg_steps_success": 74.23863636363636,
+      "avg_steps_failure": 125.5
+    },
+    {
+      "training_episode": 3170,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5732942916410191,
+      "avg_steps_success": 77.25301204819277,
+      "avg_steps_failure": 114.41176470588235
+    },
+    {
+      "training_episode": 3180,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5934112898580645,
+      "avg_steps_success": 85.78651685393258,
+      "avg_steps_failure": 126.18181818181819
+    },
+    {
+      "training_episode": 3190,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5412999009345674,
+      "avg_steps_success": 82.6375,
+      "avg_steps_failure": 107.25
+    },
+    {
+      "training_episode": 3200,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5932354008862416,
+      "avg_steps_success": 85.10112359550561,
+      "avg_steps_failure": 101.36363636363636
+    },
+    {
+      "training_episode": 3210,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5823613840363493,
+      "avg_steps_success": 82.90697674418605,
+      "avg_steps_failure": 110.92857142857143
+    },
+    {
+      "training_episode": 3220,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5831294756300601,
+      "avg_steps_success": 82.51162790697674,
+      "avg_steps_failure": 113.85714285714286
+    },
+    {
+      "training_episode": 3230,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.5335805837535355,
+      "avg_steps_success": 88.46913580246914,
+      "avg_steps_failure": 111.94736842105263
+    },
+    {
+      "training_episode": 3240,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5901416847639546,
+      "avg_steps_success": 82.05747126436782,
+      "avg_steps_failure": 122.38461538461539
+    },
+    {
+      "training_episode": 3250,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.6016069434065264,
+      "avg_steps_success": 75.36046511627907,
+      "avg_steps_failure": 114.0
+    },
+    {
+      "training_episode": 3260,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5849395968879757,
+      "avg_steps_success": 86.45454545454545,
+      "avg_steps_failure": 114.75
+    },
+    {
+      "training_episode": 3270,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5626443684013088,
+      "avg_steps_success": 87.14117647058823,
+      "avg_steps_failure": 113.53333333333333
+    },
+    {
+      "training_episode": 3280,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5827656348187905,
+      "avg_steps_success": 82.18604651162791,
+      "avg_steps_failure": 107.85714285714286
+    },
+    {
+      "training_episode": 3290,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5894719868058947,
+      "avg_steps_success": 82.77011494252874,
+      "avg_steps_failure": 96.0
+    },
+    {
+      "training_episode": 3300,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5414819851760231,
+      "avg_steps_success": 81.6125,
+      "avg_steps_failure": 122.8
+    },
+    {
+      "training_episode": 3310,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5586894395612005,
+      "avg_steps_success": 91.04651162790698,
+      "avg_steps_failure": 93.92857142857143
+    },
+    {
+      "training_episode": 3320,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.578112670817583,
+      "avg_steps_success": 81.04705882352941,
+      "avg_steps_failure": 159.46666666666667
+    },
+    {
+      "training_episode": 3330,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5781608452083591,
+      "avg_steps_success": 86.86206896551724,
+      "avg_steps_failure": 97.46153846153847
+    },
+    {
+      "training_episode": 3340,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.6050219188739889,
+      "avg_steps_success": 84.31111111111112,
+      "avg_steps_failure": 115.0
+    },
+    {
+      "training_episode": 3350,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5770319835120684,
+      "avg_steps_success": 84.23255813953489,
+      "avg_steps_failure": 148.0
+    },
+    {
+      "training_episode": 3360,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.6194325366065833,
+      "avg_steps_success": 80.08888888888889,
+      "avg_steps_failure": 101.4
+    },
+    {
+      "training_episode": 3370,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5655832067024882,
+      "avg_steps_success": 83.55952380952381,
+      "avg_steps_failure": 132.375
+    },
+    {
+      "training_episode": 3380,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5888643656100789,
+      "avg_steps_success": 82.42528735632185,
+      "avg_steps_failure": 100.23076923076923
+    },
+    {
+      "training_episode": 3390,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5978594193867499,
+      "avg_steps_success": 86.02222222222223,
+      "avg_steps_failure": 53.1
+    },
+    {
+      "training_episode": 3400,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5560534437552346,
+      "avg_steps_success": 84.09638554216868,
+      "avg_steps_failure": 86.52941176470588
+    },
+    {
+      "training_episode": 3410,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5890146836962232,
+      "avg_steps_success": 87.0,
+      "avg_steps_failure": 116.81818181818181
+    },
+    {
+      "training_episode": 3420,
+      "eval_success_rate": 0.93,
+      "eval_avg_return": 0.93,
+      "eval_avg_discounted_return": 0.6355223891291389,
+      "avg_steps_success": 80.16129032258064,
+      "avg_steps_failure": 63.42857142857143
+    },
+    {
+      "training_episode": 3430,
+      "eval_success_rate": 0.91,
+      "eval_avg_return": 0.91,
+      "eval_avg_discounted_return": 0.607525092935801,
+      "avg_steps_success": 84.85714285714286,
+      "avg_steps_failure": 129.11111111111111
+    },
+    {
+      "training_episode": 3440,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5790514017066023,
+      "avg_steps_success": 88.02272727272727,
+      "avg_steps_failure": 109.75
+    },
+    {
+      "training_episode": 3450,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5629915925451425,
+      "avg_steps_success": 81.75903614457832,
+      "avg_steps_failure": 118.05882352941177
+    },
+    {
+      "training_episode": 3460,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5600592768677369,
+      "avg_steps_success": 85.44047619047619,
+      "avg_steps_failure": 114.0
+    },
+    {
+      "training_episode": 3470,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5844501921447213,
+      "avg_steps_success": 83.0,
+      "avg_steps_failure": 127.23076923076923
+    },
+    {
+      "training_episode": 3480,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5578852443107387,
+      "avg_steps_success": 83.6987951807229,
+      "avg_steps_failure": 119.17647058823529
+    },
+    {
+      "training_episode": 3490,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5681515041101568,
+      "avg_steps_success": 82.71428571428571,
+      "avg_steps_failure": 107.5625
+    },
+    {
+      "training_episode": 3500,
+      "eval_success_rate": 0.92,
+      "eval_avg_return": 0.92,
+      "eval_avg_discounted_return": 0.6234263519396651,
+      "avg_steps_success": 82.09782608695652,
+      "avg_steps_failure": 95.625
+    },
+    {
+      "training_episode": 3510,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5474930524163015,
+      "avg_steps_success": 90.67857142857143,
+      "avg_steps_failure": 91.125
+    },
+    {
+      "training_episode": 3520,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5781295668113909,
+      "avg_steps_success": 89.76136363636364,
+      "avg_steps_failure": 92.91666666666667
+    },
+    {
+      "training_episode": 3530,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.6077984298157599,
+      "avg_steps_success": 76.20689655172414,
+      "avg_steps_failure": 101.53846153846153
+    },
+    {
+      "training_episode": 3540,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5577416442176892,
+      "avg_steps_success": 92.22093023255815,
+      "avg_steps_failure": 116.42857142857143
+    },
+    {
+      "training_episode": 3550,
+      "eval_success_rate": 0.91,
+      "eval_avg_return": 0.91,
+      "eval_avg_discounted_return": 0.60276515220173,
+      "avg_steps_success": 87.74725274725274,
+      "avg_steps_failure": 124.33333333333333
+    },
+    {
+      "training_episode": 3560,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.6024568224575314,
+      "avg_steps_success": 80.29545454545455,
+      "avg_steps_failure": 130.33333333333334
+    },
+    {
+      "training_episode": 3570,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.574261596345544,
+      "avg_steps_success": 83.32941176470588,
+      "avg_steps_failure": 107.73333333333333
+    },
+    {
+      "training_episode": 3580,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5975963118659142,
+      "avg_steps_success": 81.64772727272727,
+      "avg_steps_failure": 98.0
+    },
+    {
+      "training_episode": 3590,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5276662121288507,
+      "avg_steps_success": 88.15,
+      "avg_steps_failure": 101.85
+    },
+    {
+      "training_episode": 3600,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5699537034871001,
+      "avg_steps_success": 89.04597701149426,
+      "avg_steps_failure": 99.07692307692308
+    },
+    {
+      "training_episode": 3610,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5795307581478193,
+      "avg_steps_success": 81.72941176470589,
+      "avg_steps_failure": 117.06666666666666
+    },
+    {
+      "training_episode": 3620,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5868287320550443,
+      "avg_steps_success": 85.04545454545455,
+      "avg_steps_failure": 97.0
+    },
+    {
+      "training_episode": 3630,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.5259143411172338,
+      "avg_steps_success": 83.47435897435898,
+      "avg_steps_failure": 128.27272727272728
+    },
+    {
+      "training_episode": 3640,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5457337959134381,
+      "avg_steps_success": 86.7439024390244,
+      "avg_steps_failure": 127.66666666666667
+    },
+    {
+      "training_episode": 3650,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5831049580933838,
+      "avg_steps_success": 91.66666666666667,
+      "avg_steps_failure": 108.5
+    },
+    {
+      "training_episode": 3660,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5542256992358797,
+      "avg_steps_success": 89.84705882352941,
+      "avg_steps_failure": 94.33333333333333
+    },
+    {
+      "training_episode": 3670,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.6047751580813773,
+      "avg_steps_success": 84.31111111111112,
+      "avg_steps_failure": 100.3
+    },
+    {
+      "training_episode": 3680,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5652164101599318,
+      "avg_steps_success": 86.16470588235295,
+      "avg_steps_failure": 99.66666666666667
+    },
+    {
+      "training_episode": 3690,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5644420463059083,
+      "avg_steps_success": 93.70454545454545,
+      "avg_steps_failure": 79.83333333333333
+    },
+    {
+      "training_episode": 3700,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5986503342813854,
+      "avg_steps_success": 75.66279069767442,
+      "avg_steps_failure": 96.14285714285714
+    },
+    {
+      "training_episode": 3710,
+      "eval_success_rate": 0.93,
+      "eval_avg_return": 0.93,
+      "eval_avg_discounted_return": 0.6385883772145199,
+      "avg_steps_success": 79.35483870967742,
+      "avg_steps_failure": 139.14285714285714
+    },
+    {
+      "training_episode": 3720,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5661614690215717,
+      "avg_steps_success": 87.81395348837209,
+      "avg_steps_failure": 112.78571428571429
+    },
+    {
+      "training_episode": 3730,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.5459050569691315,
+      "avg_steps_success": 82.51851851851852,
+      "avg_steps_failure": 84.73684210526316
+    },
+    {
+      "training_episode": 3740,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5619326023553843,
+      "avg_steps_success": 79.6829268292683,
+      "avg_steps_failure": 111.0
+    },
+    {
+      "training_episode": 3750,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5740618081277329,
+      "avg_steps_success": 80.14285714285714,
+      "avg_steps_failure": 119.0625
+    },
+    {
+      "training_episode": 3760,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5613340412533292,
+      "avg_steps_success": 80.35365853658537,
+      "avg_steps_failure": 129.0
+    },
+    {
+      "training_episode": 3770,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5554208743224726,
+      "avg_steps_success": 82.41463414634147,
+      "avg_steps_failure": 122.77777777777777
+    },
+    {
+      "training_episode": 3780,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5726771530066452,
+      "avg_steps_success": 83.45882352941176,
+      "avg_steps_failure": 120.2
+    },
+    {
+      "training_episode": 3790,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5627439016047608,
+      "avg_steps_success": 81.98795180722891,
+      "avg_steps_failure": 112.41176470588235
+    },
+    {
+      "training_episode": 3800,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5785637690767623,
+      "avg_steps_success": 81.49411764705883,
+      "avg_steps_failure": 122.66666666666667
+    },
+    {
+      "training_episode": 3810,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5322914084119154,
+      "avg_steps_success": 85.35,
+      "avg_steps_failure": 104.55
+    },
+    {
+      "training_episode": 3820,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5515520408685256,
+      "avg_steps_success": 83.52439024390245,
+      "avg_steps_failure": 98.61111111111111
+    },
+    {
+      "training_episode": 3830,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5959803169440909,
+      "avg_steps_success": 85.37078651685393,
+      "avg_steps_failure": 106.18181818181819
+    },
+    {
+      "training_episode": 3840,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5912824269408569,
+      "avg_steps_success": 78.68604651162791,
+      "avg_steps_failure": 87.35714285714286
+    },
+    {
+      "training_episode": 3850,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5871841747088576,
+      "avg_steps_success": 89.4,
+      "avg_steps_failure": 101.7
+    },
+    {
+      "training_episode": 3860,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5750818940775426,
+      "avg_steps_success": 84.56976744186046,
+      "avg_steps_failure": 114.92857142857143
+    },
+    {
+      "training_episode": 3870,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5676590962927918,
+      "avg_steps_success": 89.88505747126437,
+      "avg_steps_failure": 118.53846153846153
+    },
+    {
+      "training_episode": 3880,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5647055304150652,
+      "avg_steps_success": 86.54117647058824,
+      "avg_steps_failure": 110.0
+    },
+    {
+      "training_episode": 3890,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5554839711865558,
+      "avg_steps_success": 93.5813953488372,
+      "avg_steps_failure": 104.42857142857143
+    },
+    {
+      "training_episode": 3900,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5360377179074384,
+      "avg_steps_success": 90.1951219512195,
+      "avg_steps_failure": 121.55555555555556
+    },
+    {
+      "training_episode": 3910,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5232495221037765,
+      "avg_steps_success": 89.2625,
+      "avg_steps_failure": 127.7
+    },
+    {
+      "training_episode": 3920,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.6079597995075513,
+      "avg_steps_success": 75.55172413793103,
+      "avg_steps_failure": 97.0
+    },
+    {
+      "training_episode": 3930,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5586332782378497,
+      "avg_steps_success": 75.4125,
+      "avg_steps_failure": 80.6
+    },
+    {
+      "training_episode": 3940,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5907854131284218,
+      "avg_steps_success": 84.5909090909091,
+      "avg_steps_failure": 93.33333333333333
+    },
+    {
+      "training_episode": 3950,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5432069336705023,
+      "avg_steps_success": 86.23170731707317,
+      "avg_steps_failure": 104.66666666666667
+    },
+    {
+      "training_episode": 3960,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5947318406986615,
+      "avg_steps_success": 82.57954545454545,
+      "avg_steps_failure": 120.16666666666667
+    },
+    {
+      "training_episode": 3970,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5342107489506721,
+      "avg_steps_success": 84.7625,
+      "avg_steps_failure": 106.9
+    },
+    {
+      "training_episode": 3980,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5531327155202189,
+      "avg_steps_success": 88.61904761904762,
+      "avg_steps_failure": 96.125
+    },
+    {
+      "training_episode": 3990,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5973855898618776,
+      "avg_steps_success": 86.38888888888889,
+      "avg_steps_failure": 110.9
+    },
+    {
+      "training_episode": 4000,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.5444268860997376,
+      "avg_steps_success": 84.1604938271605,
+      "avg_steps_failure": 111.63157894736842
+    },
+    {
+      "training_episode": 4010,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5480331608668347,
+      "avg_steps_success": 87.43373493975903,
+      "avg_steps_failure": 100.11764705882354
+    },
+    {
+      "training_episode": 4020,
+      "eval_success_rate": 0.75,
+      "eval_avg_return": 0.75,
+      "eval_avg_discounted_return": 0.501350008301776,
+      "avg_steps_success": 85.28,
+      "avg_steps_failure": 128.96
+    },
+    {
+      "training_episode": 4030,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5661495019603947,
+      "avg_steps_success": 80.27710843373494,
+      "avg_steps_failure": 155.2941176470588
+    },
+    {
+      "training_episode": 4040,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5941823327079281,
+      "avg_steps_success": 82.97727272727273,
+      "avg_steps_failure": 90.58333333333333
+    },
+    {
+      "training_episode": 4050,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5427266769792201,
+      "avg_steps_success": 86.64634146341463,
+      "avg_steps_failure": 99.61111111111111
+    },
+    {
+      "training_episode": 4060,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.5093552396147972,
+      "avg_steps_success": 92.67088607594937,
+      "avg_steps_failure": 100.52380952380952
+    },
+    {
+      "training_episode": 4070,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5870224408078714,
+      "avg_steps_success": 87.53932584269663,
+      "avg_steps_failure": 168.27272727272728
+    },
+    {
+      "training_episode": 4080,
+      "eval_success_rate": 0.92,
+      "eval_avg_return": 0.92,
+      "eval_avg_discounted_return": 0.583454343428609,
+      "avg_steps_success": 96.19565217391305,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4090,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5458232922634143,
+      "avg_steps_success": 91.19047619047619,
+      "avg_steps_failure": 174.8125
+    },
+    {
+      "training_episode": 4100,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5585111841145801,
+      "avg_steps_success": 98.52808988764045,
+      "avg_steps_failure": 155.0909090909091
+    },
+    {
+      "training_episode": 4110,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5147299774034404,
+      "avg_steps_success": 97.6951219512195,
+      "avg_steps_failure": 170.16666666666666
+    },
+    {
+      "training_episode": 4120,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5570141980006461,
+      "avg_steps_success": 92.17441860465117,
+      "avg_steps_failure": 169.07142857142858
+    },
+    {
+      "training_episode": 4130,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5802415587566955,
+      "avg_steps_success": 90.57303370786516,
+      "avg_steps_failure": 127.0
+    },
+    {
+      "training_episode": 4140,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5727415549641021,
+      "avg_steps_success": 94.08988764044943,
+      "avg_steps_failure": 158.27272727272728
+    },
+    {
+      "training_episode": 4150,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.570148391522945,
+      "avg_steps_success": 94.58426966292134,
+      "avg_steps_failure": 143.27272727272728
+    },
+    {
+      "training_episode": 4160,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5794072924442419,
+      "avg_steps_success": 88.73863636363636,
+      "avg_steps_failure": 131.66666666666666
+    },
+    {
+      "training_episode": 4170,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5523826113556973,
+      "avg_steps_success": 96.57471264367815,
+      "avg_steps_failure": 161.76923076923077
+    },
+    {
+      "training_episode": 4180,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5776679764018943,
+      "avg_steps_success": 94.14444444444445,
+      "avg_steps_failure": 136.9
+    },
+    {
+      "training_episode": 4190,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.5275816308317303,
+      "avg_steps_success": 87.6,
+      "avg_steps_failure": 162.4
+    },
+    {
+      "training_episode": 4200,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5156920030402913,
+      "avg_steps_success": 98.98780487804878,
+      "avg_steps_failure": 164.72222222222223
+    },
+    {
+      "training_episode": 4210,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5661806249530877,
+      "avg_steps_success": 90.95402298850574,
+      "avg_steps_failure": 186.84615384615384
+    },
+    {
+      "training_episode": 4220,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5786708127780832,
+      "avg_steps_success": 85.79310344827586,
+      "avg_steps_failure": 187.07692307692307
+    },
+    {
+      "training_episode": 4230,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5527503587573991,
+      "avg_steps_success": 95.71264367816092,
+      "avg_steps_failure": 161.15384615384616
+    },
+    {
+      "training_episode": 4240,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5497605712383021,
+      "avg_steps_success": 99.48863636363636,
+      "avg_steps_failure": 173.16666666666666
+    },
+    {
+      "training_episode": 4250,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5824462381408076,
+      "avg_steps_success": 84.73563218390805,
+      "avg_steps_failure": 156.76923076923077
+    },
+    {
+      "training_episode": 4260,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5422449919122346,
+      "avg_steps_success": 97.38372093023256,
+      "avg_steps_failure": 172.92857142857142
+    },
+    {
+      "training_episode": 4270,
+      "eval_success_rate": 0.91,
+      "eval_avg_return": 0.91,
+      "eval_avg_discounted_return": 0.5860278481698399,
+      "avg_steps_success": 92.95604395604396,
+      "avg_steps_failure": 169.88888888888889
+    },
+    {
+      "training_episode": 4280,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5496968024716206,
+      "avg_steps_success": 97.20689655172414,
+      "avg_steps_failure": 156.6153846153846
+    },
+    {
+      "training_episode": 4290,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5208643071266333,
+      "avg_steps_success": 99.62650602409639,
+      "avg_steps_failure": 180.64705882352942
+    },
+    {
+      "training_episode": 4300,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5337067630508932,
+      "avg_steps_success": 94.12048192771084,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4310,
+      "eval_success_rate": 0.91,
+      "eval_avg_return": 0.91,
+      "eval_avg_discounted_return": 0.5924343850525379,
+      "avg_steps_success": 91.0989010989011,
+      "avg_steps_failure": 181.0
+    },
+    {
+      "training_episode": 4320,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5765091538732819,
+      "avg_steps_success": 94.58888888888889,
+      "avg_steps_failure": 182.9
+    },
+    {
+      "training_episode": 4330,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5113813357631362,
+      "avg_steps_success": 103.0,
+      "avg_steps_failure": 181.11764705882354
+    },
+    {
+      "training_episode": 4340,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5543972930171432,
+      "avg_steps_success": 95.67816091954023,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4350,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5680644494788301,
+      "avg_steps_success": 92.89772727272727,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4360,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5542798444177924,
+      "avg_steps_success": 94.94252873563218,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4370,
+      "eval_success_rate": 0.91,
+      "eval_avg_return": 0.91,
+      "eval_avg_discounted_return": 0.572163678427478,
+      "avg_steps_success": 98.04395604395604,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4380,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5934853779121204,
+      "avg_steps_success": 85.43820224719101,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4390,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5309186168169324,
+      "avg_steps_success": 96.71428571428571,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4400,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5519419790645601,
+      "avg_steps_success": 93.37209302325581,
+      "avg_steps_failure": 189.21428571428572
+    },
+    {
+      "training_episode": 4410,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5479330784428766,
+      "avg_steps_success": 92.44705882352942,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4420,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5360169639524063,
+      "avg_steps_success": 99.63953488372093,
+      "avg_steps_failure": 182.0
+    },
+    {
+      "training_episode": 4430,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.559469803600939,
+      "avg_steps_success": 96.51136363636364,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4440,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5386936498420802,
+      "avg_steps_success": 89.84146341463415,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4450,
+      "eval_success_rate": 0.95,
+      "eval_avg_return": 0.95,
+      "eval_avg_discounted_return": 0.6136412965081658,
+      "avg_steps_success": 91.32631578947368,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4460,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5312265696452236,
+      "avg_steps_success": 94.4578313253012,
+      "avg_steps_failure": 179.76470588235293
+    },
+    {
+      "training_episode": 4470,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5199051000807419,
+      "avg_steps_success": 98.62650602409639,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4480,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5445817003396346,
+      "avg_steps_success": 89.7710843373494,
+      "avg_steps_failure": 169.94117647058823
+    },
+    {
+      "training_episode": 4490,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5618523133986578,
+      "avg_steps_success": 95.17045454545455,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4500,
+      "eval_success_rate": 0.91,
+      "eval_avg_return": 0.91,
+      "eval_avg_discounted_return": 0.5634094860799185,
+      "avg_steps_success": 100.83516483516483,
+      "avg_steps_failure": 182.22222222222223
+    },
+    {
+      "training_episode": 4510,
+      "eval_success_rate": 0.91,
+      "eval_avg_return": 0.91,
+      "eval_avg_discounted_return": 0.5640308303154365,
+      "avg_steps_success": 100.81318681318682,
+      "avg_steps_failure": 163.77777777777777
+    },
+    {
+      "training_episode": 4520,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5767276281521226,
+      "avg_steps_success": 92.19101123595506,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4530,
+      "eval_success_rate": 0.92,
+      "eval_avg_return": 0.92,
+      "eval_avg_discounted_return": 0.5790041034985106,
+      "avg_steps_success": 98.5,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4540,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5533457112411173,
+      "avg_steps_success": 99.70786516853933,
+      "avg_steps_failure": 173.72727272727272
+    },
+    {
+      "training_episode": 4550,
+      "eval_success_rate": 0.92,
+      "eval_avg_return": 0.92,
+      "eval_avg_discounted_return": 0.5901516501018772,
+      "avg_steps_success": 94.28260869565217,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4560,
+      "eval_success_rate": 0.96,
+      "eval_avg_return": 0.96,
+      "eval_avg_discounted_return": 0.6188056232113341,
+      "avg_steps_success": 93.53125,
+      "avg_steps_failure": 158.25
+    },
+    {
+      "training_episode": 4570,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5273251353834199,
+      "avg_steps_success": 98.70238095238095,
+      "avg_steps_failure": 179.1875
+    },
+    {
+      "training_episode": 4580,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5498801912753561,
+      "avg_steps_success": 93.97674418604652,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4590,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5542409668977123,
+      "avg_steps_success": 92.76744186046511,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4600,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5575854849808507,
+      "avg_steps_success": 99.25842696629213,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4610,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5558064832125319,
+      "avg_steps_success": 101.77777777777777,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4620,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5443667308418381,
+      "avg_steps_success": 100.35632183908046,
+      "avg_steps_failure": 187.15384615384616
+    },
+    {
+      "training_episode": 4630,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.5218337709676029,
+      "avg_steps_success": 87.22784810126582,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4640,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5471890770632661,
+      "avg_steps_success": 95.77906976744185,
+      "avg_steps_failure": 176.92857142857142
+    },
+    {
+      "training_episode": 4650,
+      "eval_success_rate": 0.93,
+      "eval_avg_return": 0.93,
+      "eval_avg_discounted_return": 0.5886579803966616,
+      "avg_steps_success": 96.3225806451613,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4660,
+      "eval_success_rate": 0.92,
+      "eval_avg_return": 0.92,
+      "eval_avg_discounted_return": 0.5680264934230561,
+      "avg_steps_success": 101.46739130434783,
+      "avg_steps_failure": 179.0
+    },
+    {
+      "training_episode": 4670,
+      "eval_success_rate": 0.84,
+      "eval_avg_return": 0.84,
+      "eval_avg_discounted_return": 0.5463191335446352,
+      "avg_steps_success": 91.0,
+      "avg_steps_failure": 188.875
+    },
+    {
+      "training_episode": 4680,
+      "eval_success_rate": 0.93,
+      "eval_avg_return": 0.93,
+      "eval_avg_discounted_return": 0.6014617451698263,
+      "avg_steps_success": 92.0752688172043,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4690,
+      "eval_success_rate": 0.79,
+      "eval_avg_return": 0.79,
+      "eval_avg_discounted_return": 0.4742301810287695,
+      "avg_steps_success": 107.58227848101266,
+      "avg_steps_failure": 178.0
+    },
+    {
+      "training_episode": 4700,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5213778781923115,
+      "avg_steps_success": 105.59302325581395,
+      "avg_steps_failure": 155.57142857142858
+    },
+    {
+      "training_episode": 4710,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.5074094965208831,
+      "avg_steps_success": 97.8395061728395,
+      "avg_steps_failure": 165.10526315789474
+    },
+    {
+      "training_episode": 4720,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5614709345133186,
+      "avg_steps_success": 98.75555555555556,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4730,
+      "eval_success_rate": 0.8,
+      "eval_avg_return": 0.8,
+      "eval_avg_discounted_return": 0.4825976566207185,
+      "avg_steps_success": 107.425,
+      "avg_steps_failure": 196.35
+    },
+    {
+      "training_episode": 4740,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.559784063424123,
+      "avg_steps_success": 92.28735632183908,
+      "avg_steps_failure": 187.0
+    },
+    {
+      "training_episode": 4750,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.5267694882502926,
+      "avg_steps_success": 91.51851851851852,
+      "avg_steps_failure": 184.42105263157896
+    },
+    {
+      "training_episode": 4760,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.530996558181255,
+      "avg_steps_success": 101.67441860465117,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4770,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5722766953667362,
+      "avg_steps_success": 93.35955056179775,
+      "avg_steps_failure": 200.0
+    },
+    {
+      "training_episode": 4780,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5356699374102253,
+      "avg_steps_success": 106.87640449438203,
+      "avg_steps_failure": 178.1818181818182
+    },
+    {
+      "training_episode": 4790,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5628958903466453,
+      "avg_steps_success": 89.24418604651163,
+      "avg_steps_failure": 164.0
+    },
+    {
+      "training_episode": 4800,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5077442300324657,
+      "avg_steps_success": 103.78313253012048,
+      "avg_steps_failure": 175.52941176470588
+    },
+    {
+      "training_episode": 4810,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.570751509124473,
+      "avg_steps_success": 91.95454545454545,
+      "avg_steps_failure": 153.83333333333334
+    },
+    {
+      "training_episode": 4820,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5307821377093637,
+      "avg_steps_success": 93.01219512195122,
+      "avg_steps_failure": 178.66666666666666
+    },
+    {
+      "training_episode": 4830,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5515440551346078,
+      "avg_steps_success": 98.44318181818181,
+      "avg_steps_failure": 174.91666666666666
+    },
+    {
+      "training_episode": 4840,
+      "eval_success_rate": 0.78,
+      "eval_avg_return": 0.78,
+      "eval_avg_discounted_return": 0.4857411657109564,
+      "avg_steps_success": 100.37179487179488,
+      "avg_steps_failure": 181.6818181818182
+    },
+    {
+      "training_episode": 4850,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5112391687476407,
+      "avg_steps_success": 100.41463414634147,
+      "avg_steps_failure": 163.44444444444446
+    },
+    {
+      "training_episode": 4860,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5414623786111706,
+      "avg_steps_success": 95.94117647058823,
+      "avg_steps_failure": 132.8
+    },
+    {
+      "training_episode": 4870,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5722410383345659,
+      "avg_steps_success": 90.0,
+      "avg_steps_failure": 125.23076923076923
+    },
+    {
+      "training_episode": 4880,
+      "eval_success_rate": 0.89,
+      "eval_avg_return": 0.89,
+      "eval_avg_discounted_return": 0.5779837654194595,
+      "avg_steps_success": 91.70786516853933,
+      "avg_steps_failure": 186.9090909090909
+    },
+    {
+      "training_episode": 4890,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5875478196923244,
+      "avg_steps_success": 90.56666666666666,
+      "avg_steps_failure": 155.7
+    },
+    {
+      "training_episode": 4900,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5264724288816112,
+      "avg_steps_success": 100.34117647058824,
+      "avg_steps_failure": 186.66666666666666
+    },
+    {
+      "training_episode": 4910,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5263760083813763,
+      "avg_steps_success": 100.55294117647058,
+      "avg_steps_failure": 183.73333333333332
+    },
+    {
+      "training_episode": 4920,
+      "eval_success_rate": 0.86,
+      "eval_avg_return": 0.86,
+      "eval_avg_discounted_return": 0.5530633540351554,
+      "avg_steps_success": 93.80232558139535,
+      "avg_steps_failure": 180.14285714285714
+    },
+    {
+      "training_episode": 4930,
+      "eval_success_rate": 0.82,
+      "eval_avg_return": 0.82,
+      "eval_avg_discounted_return": 0.5105858443467161,
+      "avg_steps_success": 99.64634146341463,
+      "avg_steps_failure": 180.11111111111111
+    },
+    {
+      "training_episode": 4940,
+      "eval_success_rate": 0.83,
+      "eval_avg_return": 0.83,
+      "eval_avg_discounted_return": 0.5240839469728836,
+      "avg_steps_success": 97.37349397590361,
+      "avg_steps_failure": 156.1764705882353
+    },
+    {
+      "training_episode": 4950,
+      "eval_success_rate": 0.92,
+      "eval_avg_return": 0.92,
+      "eval_avg_discounted_return": 0.5803111875404076,
+      "avg_steps_success": 97.59782608695652,
+      "avg_steps_failure": 172.875
+    },
+    {
+      "training_episode": 4960,
+      "eval_success_rate": 0.9,
+      "eval_avg_return": 0.9,
+      "eval_avg_discounted_return": 0.5719550580507552,
+      "avg_steps_success": 96.02222222222223,
+      "avg_steps_failure": 182.0
+    },
+    {
+      "training_episode": 4970,
+      "eval_success_rate": 0.88,
+      "eval_avg_return": 0.88,
+      "eval_avg_discounted_return": 0.5571516001086642,
+      "avg_steps_success": 96.43181818181819,
+      "avg_steps_failure": 156.0
+    },
+    {
+      "training_episode": 4980,
+      "eval_success_rate": 0.81,
+      "eval_avg_return": 0.81,
+      "eval_avg_discounted_return": 0.52065755793298,
+      "avg_steps_success": 93.04938271604938,
+      "avg_steps_failure": 164.42105263157896
+    },
+    {
+      "training_episode": 4990,
+      "eval_success_rate": 0.87,
+      "eval_avg_return": 0.87,
+      "eval_avg_discounted_return": 0.5794652502062297,
+      "avg_steps_success": 85.65517241379311,
+      "avg_steps_failure": 157.84615384615384
+    },
+    {
+      "training_episode": 5000,
+      "eval_success_rate": 0.85,
+      "eval_avg_return": 0.85,
+      "eval_avg_discounted_return": 0.5713633007967952,
+      "avg_steps_success": 83.43529411764706,
+      "avg_steps_failure": 138.66666666666666
+    }
+  ],
+  "final_sr": 0.85,
+  "final_dr": 0.5713633007967952
+}

@@ -19,6 +19,6 @@ source .venv/bin/activate
 python run_experiment.py \
     --instances 8s 8medium 8hard \
     --methods q-none:b3:fail q-classic:b3:fail q-cp-etr:b3:fail cp-greedy:b3:fail \
-    --seeds 20 \
+    --seeds 40 \
     --episodes 5_000 \
     --workers 16
